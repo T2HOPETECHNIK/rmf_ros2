@@ -149,6 +149,8 @@ PYBIND11_MODULE(rmf_adapter, m) {
     py::arg("enable"))
   .def("set_charger_waypoint", &agv::RobotUpdateHandle::set_charger_waypoint,
     py::arg("charger_wp"))
+  .def("set_finishing_request", &agv::RobotUpdateHandle::set_finishing_request,
+    py::arg("finishing_request"))
   .def("update_battery_soc", &agv::RobotUpdateHandle::update_battery_soc,
     py::arg("battery_soc"))
   .def("override_status", &agv::RobotUpdateHandle::override_status,
@@ -880,7 +882,11 @@ PYBIND11_MODULE(rmf_adapter, m) {
   .def_property(
     "compatible_chargers",
     &agv::EasyFullControl::RobotConfiguration::compatible_chargers,
-    &agv::EasyFullControl::RobotConfiguration::set_compatible_chargers);
+    &agv::EasyFullControl::RobotConfiguration::set_compatible_chargers)
+  .def_property(
+    "finishing_request",
+    &agv::EasyFullControl::RobotConfiguration::finishing_request,
+    &agv::EasyFullControl::RobotConfiguration::set_finishing_request);
 
   py::class_<agv::EasyFullControl::RobotCallbacks>(m_easy_full_control, "RobotCallbacks")
   .def(py::init<
