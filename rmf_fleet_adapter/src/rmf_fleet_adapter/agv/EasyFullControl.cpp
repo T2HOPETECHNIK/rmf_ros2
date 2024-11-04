@@ -3253,6 +3253,7 @@ auto EasyFullControl::add_robot(
       localization = std::move(localization),
       nav_params = robot_nav_params,
       enable_responsive_wait,
+      use_parking_reservation = _pimpl->use_parking_reservation,
       finishing_request
     ](const RobotUpdateHandlePtr& updater)
     {
@@ -3273,6 +3274,7 @@ auto EasyFullControl::add_robot(
           context,
           nav_params,
           enable_responsive_wait,
+          use_parking_reservation,
           finishing_request
         ](const auto&)
         {
@@ -3292,6 +3294,8 @@ auto EasyFullControl::add_robot(
             handle->set_finishing_request(finishing_request.value());
             context->robot_finishing_request(true);
           }
+
+          context->_set_parking_spot_manager(use_parking_reservation);
 
           RCLCPP_INFO(
             node->get_logger(),
