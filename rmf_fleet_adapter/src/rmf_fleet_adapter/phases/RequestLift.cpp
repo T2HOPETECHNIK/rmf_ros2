@@ -24,6 +24,8 @@
 namespace rmf_fleet_adapter {
 namespace phases {
 
+const int AGV_MODE = 2;
+
 //==============================================================================
 std::shared_ptr<RequestLift::ActivePhase> RequestLift::ActivePhase::make(
   agv::RobotContextPtr context,
@@ -286,6 +288,7 @@ LegacyTask::StatusMsg RequestLift::ActivePhase::_get_status(
   if (!_rewaiting &&
     lift_state->lift_name == _lift_name &&
     lift_state->current_floor == _destination &&
+    lift_state->current_mode == AGV_MODE && 
     lift_state->door_state == LiftState::DOOR_OPEN &&
     lift_state->session_id == _context->requester_id())
   {
