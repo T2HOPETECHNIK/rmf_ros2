@@ -70,7 +70,7 @@ jobs:
       run: docker rmi rmf-core:latest || true
 
     - name: remove latest files
-      run: rum -rf build/rmf-src
+      run: rm -rf build/rmf-src
 
     - name: Clean up Docker system
       run: docker system prune -f
