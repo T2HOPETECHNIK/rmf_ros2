@@ -86,6 +86,10 @@ public:
           if (c_it->second.claim_time <= request.claim_time)
           {
             g_it->second.erase(c_it);
+            RCLCPP_INFO(
+                get_logger(),
+                "Erased mutex group due to claim time");
+            }
             pick_next(request.group);
             state_pub->publish(latest_states);
           }
@@ -113,7 +117,7 @@ public:
   {
     const auto now = std::chrono::steady_clock::now();
     // TODO(MXG): Make this timeout configurable
-    const auto timeout = std::chrono::seconds(10);
+    const auto timeout = std::chrono::seconds(30);
     for (auto& [group, claims] : mutex_groups)
     {
       std::vector<uint64_t> remove_claims;
@@ -144,6 +148,10 @@ public:
         }
 
         claims.erase(remove_claim);
+        RCLCPP_INFO(
+            get_logger(),
+            "Erased mutex group due to heart beat");
+        }
       }
 
       if (need_next_pick)
