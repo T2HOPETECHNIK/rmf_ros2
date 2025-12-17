@@ -296,6 +296,21 @@ void LockMutexGroup::Active::_initialize()
                   // The new plan was not a match, so we should trigger a
                   // proper replan.
                   self->_state->update_status(Status::Completed);
+                  
+                  // In emergency mode, we must still call finished() to allow
+                  // the emergency pullover's check_completion to handle replanning
+                  if (self->_context->emergency_active())
+                  {
+                    RCLCPP_INFO(
+                      self->_context->node()->get_logger(),
+                      "Finished locking mutexes %s for [%s] during emergency - "
+                      "plan changed but letting emergency pullover handle replan",
+                      self->_data.all_groups_str().c_str(),
+                      self->_context->requester_id().c_str());
+                    finished();
+                    return;
+                  }
+                  
                   self->_context->request_replan();
                 });
 

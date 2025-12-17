@@ -637,6 +637,12 @@ RobotContext::emergency_planner() const
 }
 
 //==============================================================================
+bool RobotContext::emergency_active() const
+{
+  return _emergency;
+}
+
+//==============================================================================
 std::shared_ptr<NavParams> RobotContext::nav_params() const
 {
   return _nav_params;

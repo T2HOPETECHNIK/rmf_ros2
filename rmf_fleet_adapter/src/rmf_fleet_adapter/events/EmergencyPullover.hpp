@@ -122,6 +122,9 @@ public:
     rclcpp::TimerBase::SharedPtr _retry_timer;
 
     bool _is_interrupted = false;
+    
+    // Store the target parking waypoint to verify completion
+    std::optional<std::size_t> _target_parking_waypoint;
   };
 
 private:

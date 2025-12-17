@@ -1149,11 +1149,26 @@ void EasyCommandHandle::follow_new_path(
       context->requester_id().c_str(),
       ss.str().c_str());
 
-    // Stop the robot to prevent it from diverging too far while a replan
-    // happens.
-    stop();
-    context->request_replan();
-    return;
+    // During emergency mode, do not trigger replans for path deviations.
+    // The emergency pullover's check_completion will handle replanning.
+    if (context->emergency_active())
+    {
+      RCLCPP_WARN(
+        context->node()->get_logger(),
+        "Robot [%s] is far from commanded path during emergency mode. "
+        "Proceeding anyway - emergency pullover will handle completion check.",
+        context->requester_id().c_str());
+      // Don't stop or request replan - let the emergency pullover continue
+      // Find a suitable starting point and proceed with execution
+    }
+    else
+    {
+      // Stop the robot to prevent it from diverging too far while a replan
+      // happens.
+      stop();
+      context->request_replan();
+      return;
+    }
   }
 
   if (i0 >= waypoints.size() - 1)

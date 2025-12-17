@@ -242,6 +242,11 @@ void EmergencyPullover::Active::_find_plan()
   _state->update_status(Status::Underway);
   _state->update_log().info("Searching for an emergency pullover");
 
+  RCLCPP_WARN(
+    _context->node()->get_logger(),
+    "[EMERGENCY PULLOVER] Robot [%s] is searching for an emergency parking location...",
+    _context->requester_id().c_str());
+
   _find_pullover_service = std::make_shared<services::FindEmergencyPullover>(
     _context->emergency_planner(), _context->location(),
     _context->schedule()->snapshot(),
@@ -276,6 +281,24 @@ void EmergencyPullover::Active::_find_plan()
 
       self->_state->update_status(Status::Underway);
       self->_state->update_log().info("Found an emergency pullover");
+
+      // Store the target parking waypoint for completion verification
+      const auto& waypoints = result->get_waypoints();
+      if (!waypoints.empty() && waypoints.back().graph_index().has_value())
+      {
+        self->_target_parking_waypoint = waypoints.back().graph_index().value();
+        const auto& graph = self->_context->planner()->get_configuration().graph();
+        const auto& wp = graph.get_waypoint(*self->_target_parking_waypoint);
+        
+        RCLCPP_WARN(
+          self->_context->node()->get_logger(),
+          "[EMERGENCY PULLOVER SUCCESS] Robot [%s] found parking waypoint: [%s] "
+          "(index %zu) on map [%s]. Executing pullover now.",
+          self->_context->requester_id().c_str(),
+          wp.name_or_index().c_str(),
+          *self->_target_parking_waypoint,
+          wp.get_map_name().c_str());
+      }
 
       auto full_itinerary = result->get_itinerary();
       self->_execute_plan(
@@ -361,13 +384,74 @@ void EmergencyPullover::Active::_execute_plan(
     return;
   }
 
+  RCLCPP_INFO(
+    _context->node()->get_logger(),
+    "[EMERGENCY PULLOVER] Executing plan id %ld with %zu waypoints",
+    static_cast<long>(plan_id),
+    plan.get_waypoints().size());
+
   auto goal = rmf_traffic::agv::Plan::Goal(
     plan.get_waypoints().back().graph_index().value());
+
+  // Create a completion checker that verifies if robot reached parking spot
+  auto check_completion = [weak_self = weak_from_this()]()
+  {
+    auto self = weak_self.lock();
+    if (!self)
+      return;
+
+    // Check if we've reached the target parking waypoint
+    if (self->_target_parking_waypoint.has_value())
+    {
+      const auto current_location = self->_context->location();
+      if (!current_location.empty())
+      {
+        const auto current_waypoint = current_location.front().waypoint();
+        const auto& graph = self->_context->planner()->get_configuration().graph();
+        const auto& current_wp = graph.get_waypoint(current_waypoint);
+        const auto& target_wp = graph.get_waypoint(self->_target_parking_waypoint.value());
+        
+        RCLCPP_INFO(
+          self->_context->node()->get_logger(),
+          "[EMERGENCY PULLOVER] Robot [%s] check_completion - Current: [%s] (%zu), "
+          "Target: [%s] (%zu)",
+          self->_context->requester_id().c_str(),
+          current_wp.name_or_index().c_str(),
+          current_waypoint,
+          target_wp.name_or_index().c_str(),
+          self->_target_parking_waypoint.value());
+        
+        if (current_waypoint == self->_target_parking_waypoint.value())
+        {
+          // Successfully reached the parking waypoint
+          RCLCPP_INFO(
+            self->_context->node()->get_logger(),
+            "[EMERGENCY PULLOVER] Robot [%s] successfully reached parking "
+            "waypoint %zu",
+            self->_context->requester_id().c_str(),
+            self->_target_parking_waypoint.value());
+          
+          self->_finished();
+          return;
+        }
+      }
+    }
+
+    // Haven't reached parking spot yet - replan to continue
+    RCLCPP_WARN(
+      self->_context->node()->get_logger(),
+      "[EMERGENCY PULLOVER] Robot [%s] has not yet reached parking waypoint. "
+      "Replanning...",
+      self->_context->requester_id().c_str());
+    
+    self->_execution = std::nullopt;
+    self->_find_plan();
+  };
 
   _execution = ExecutePlan::make(
     _context, plan_id, std::move(plan), std::move(goal),
     std::move(full_itinerary), _assign_id, _state, _update,
-    _finished, std::nullopt);
+    check_completion, std::nullopt);
 
   if (!_execution.has_value())
   {

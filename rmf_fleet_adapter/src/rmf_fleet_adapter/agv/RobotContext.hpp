@@ -494,6 +494,9 @@ public:
   const std::shared_ptr<const rmf_traffic::agv::Planner>& emergency_planner()
   const;
 
+  /// Check if emergency mode is currently active for this robot
+  bool emergency_active() const;
+
   /// Get the navigation params for this robot, if it has any. This will only be
   /// available for EasyFullControl robots.
   std::shared_ptr<NavParams> nav_params() const;
