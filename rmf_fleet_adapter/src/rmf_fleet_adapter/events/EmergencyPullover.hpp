@@ -105,6 +105,8 @@ public:
       rmf_traffic::agv::Plan plan,
       rmf_traffic::schedule::Itinerary full_itinerary);
 
+    void _stop_and_clear();
+
     Negotiator::NegotiatePtr _respond(
       const Negotiator::TableViewerPtr& table_view,
       const Negotiator::ResponderPtr& responder);
