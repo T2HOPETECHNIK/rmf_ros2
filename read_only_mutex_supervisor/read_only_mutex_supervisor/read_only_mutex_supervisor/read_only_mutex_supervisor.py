@@ -117,9 +117,8 @@ class ReadOnlyMutexSupervisor(Node):
 
     def fleet_state_callback(self, msg):
         """Handle the fleet state and manage mutexes for robots."""
-        if msg.name != self.fleet_name:
-            return
-
+       if not self.fleet_name or msg.name not in self.fleet_name:
+          return
         for robot in msg.robots:
             robot_in_mutex = False
             x = robot.location.x
@@ -163,7 +162,11 @@ def main(argv=sys.argv):
     args_without_ros = rclpy.utilities.remove_ros_args(argv)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-F', '--fleet-name', help='Read-only fleet name')
+    parser.add_argument(
+    '-F', '--fleet-name',
+    help='Read-only fleet name(s)',
+    nargs='+'
+    )
     parser.add_argument(
         '-t',
         '--threshold',
