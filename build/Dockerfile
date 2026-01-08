@@ -1,5 +1,5 @@
 ARG TAG="latest"
-FROM builder-rosdep:$TAG
+FROM rosdep:$TAG
 
 ARG NETRC
 
