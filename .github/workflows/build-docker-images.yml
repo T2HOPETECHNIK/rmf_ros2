@@ -2,9 +2,9 @@ name: Build rmf-HT docker images
 
 on:
   push:
-    branches: ['cgh_ot_main', 'SBH-71-Add-auto-build-for-rmf-ros2']
+    branches: ['cgh_ot_main', 'SC2-800_commit_ros_sep']
   pull_request:
-    branches: ['cgh_ot_main', 'SBH-71-Add-auto-build-for-rmf-ros2']
+    branches: ['cgh_ot_main', 'SC2-800_commit_ros_sep']
   schedule:
     - cron: "08 0 * * *"
   workflow_dispatch:
