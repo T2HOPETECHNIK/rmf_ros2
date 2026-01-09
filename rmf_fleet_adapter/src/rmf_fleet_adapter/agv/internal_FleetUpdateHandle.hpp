@@ -318,9 +318,10 @@ public:
   rxcpp::subjects::subject<rmf_fleet_msgs::msg::DiversionInProgress> diversion_publisher;
   rxcpp::observable<rmf_fleet_msgs::msg::DiversionInProgress> diversion_in_progress_obs;
 
+
   // When an emergency (fire alarm) is active, this map says which level each
   // lift will "home" to (if any).
-  std::shared_ptr<rmf_fleet_msgs::msg::DiversionInProgress> diversion_active = nullptr; // Used to determine if diversion is in progress from robot fleet adapter for a specific robot
+  bool diversion_active = false; // Used to determine if diversion is in progress from robot fleet adapter for a specific robot
   std::unordered_map<std::string, std::string> emergency_level_for_lift;
   SharedPlanner emergency_planner;
 

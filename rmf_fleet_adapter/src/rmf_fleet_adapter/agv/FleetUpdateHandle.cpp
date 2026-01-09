@@ -1526,12 +1526,10 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
     return;
   }
   
-  diversion_active->robot_name = diversion_msg->robot_name;
-  diversion_active->in_progress = diversion_msg->in_progress;
-
   for (const auto& [context, _] : task_managers)
   {
-    context->_set_diversion(diversion_active->in_progress);
+    if (diversion_msg->robot_name == context->get_name())
+      context->_set_diversion(diversion_msg->in_progress);
   }
   //diversion_publisher.get_subscriber().on_next(diversion_active->in_progress);
 }
@@ -1864,7 +1862,9 @@ void FleetUpdateHandle::add_robot(
 
           if (fleet->_pimpl->diversion_active->in_progress)
           {
-            context->_set_diversion(fleet->_pimpl->diversion_active->in_progress);
+            context->_set_diversion(true);
+            // if (diversion_active->robot_name == context->get_name())
+            //   context->_set_diversion(fleet->_pimpl->diversion_active->in_progress);
           }
           // TODO(MXG): We need to perform this test because we do not currently
           // support the distributed negotiation in unit test environments. We
