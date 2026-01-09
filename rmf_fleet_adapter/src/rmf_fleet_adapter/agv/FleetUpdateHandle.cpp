@@ -1520,11 +1520,15 @@ void FleetUpdateHandle::Implementation::update_emergency_planner()
 void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
   std::shared_ptr<rmf_fleet_msgs::msg::DiversionInProgress> diversion_msg)
 {
-  bool execute = false;
   if (diversion_msg == nullptr)
   {
     return;
   }
+
+  if (diversion_active == diversion_msg->in_progress)
+    return;
+
+  diversion_active = diversion_msg->in_progress;
 
   RCLCPP_INFO(
     node->get_logger(),
@@ -1537,7 +1541,7 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
     if (diversion_msg->robot_name == context->name())
       context->_set_diversion(diversion_msg->in_progress);
   }
-  //diversion_publisher.get_subscriber().on_next(diversion_active->in_progress);
+  //diversion_publisher.get_subscriber().on_next(diversion_active);
 }
 
 //==============================================================================
@@ -1546,7 +1550,7 @@ void FleetUpdateHandle::Implementation::update_charging_assignments(
 {
   if (charging.fleet_name != name)
     return;
-
+  
   RCLCPP_INFO(
     node->get_logger(),
     "Fleet [%s] received new charging assignments",
