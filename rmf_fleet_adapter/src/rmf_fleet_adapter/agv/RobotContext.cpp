@@ -645,6 +645,11 @@ bool RobotContext::emergency_active() const
 //==============================================================================
 bool RobotContext::diversion_active() const
 {
+  RCLCPP_INFO(
+    _node->get_logger(),
+    "Robot [%s] diversion status: %s",
+    requester_id().c_str()
+    _diversion);
   return _diversion;
 }
 
