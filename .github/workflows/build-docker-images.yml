@@ -55,7 +55,7 @@ jobs:
       run: docker push hopetechnik/rmf-core:${{ env.git_sha_short }}
 
     - name: Push the ros dep latest
-      run: docker push hopetechnik/rmf-dep:latest
+      run: docker push hopetechnik/rosdep:latest
 
     - name: Push the latest
       run: docker push hopetechnik/rmf-core:latest
