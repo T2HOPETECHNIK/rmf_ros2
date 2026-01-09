@@ -647,7 +647,7 @@ bool RobotContext::diversion_active() const
 {
   RCLCPP_INFO(
     _node->get_logger(),
-    "Robot [%s] diversion status: %d",
+    "Robot [%s] diversion status [Robot Context]: %d",
     requester_id().c_str(),
     _diversion);
     

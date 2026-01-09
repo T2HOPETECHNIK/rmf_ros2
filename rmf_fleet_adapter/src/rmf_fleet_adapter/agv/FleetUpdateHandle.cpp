@@ -1525,6 +1525,12 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
   {
     return;
   }
+
+  RCLCPP_INFO(
+    node->get_logger(),
+    "Robot [%s] diversion status [Fleet Update Handle]: %d",
+    diversion_msg->robot_name.c_str(),
+    diversion_msg->in_progress);
   
   for (const auto& [context, _] : task_managers)
   {
