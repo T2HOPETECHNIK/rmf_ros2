@@ -26,18 +26,10 @@ jobs:
     - name: build rosdep 
 
       run: docker build --no-cache=true -t rosdep:latest -f build/builder-rosdep.Dockerfile .
-    - name: Pin rmf_ros2 repo to workflow commit using sed
+    - name: Pin rmf_ros2 repo to branch
       run: |
-        echo "Pinning multiple repos to workflow commit"
-        echo "  Full SHA : $GITHUB_SHA"
-        echo "  Short SHA: $(git rev-parse --short "$GITHUB_SHA")"
-    
-        # Pin only rmf/rmf_ros2 (example)
-        sed -i "/rmf\/rmf_ros2:/,/version:/ s|^\(\s*version:\s*\).*|\1$GITHUB_SHA|" build/rmf.repos
-      
-        echo "Updated entries:"
-        grep -E "rmf/rmf_ros2|other_repo" -A 2 build/rmf.repos
-
+        echo "Using branch for rmf_ros2: $branch_name"
+        sed -i "/rmf\/rmf_ros2:/,/version:/ s|^\(\s*version:\s*\).*|\1$branch_name|" build/rmf.repos
 
     - name: check out source code
       run:  mkdir build/rmf-src && vcs import build/rmf-src < build/rmf.repos
