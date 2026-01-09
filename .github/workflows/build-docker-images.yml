@@ -26,6 +26,20 @@ jobs:
     - name: build rosdep 
 
       run: docker build --no-cache=true -t rosdep:latest -f build/builder-rosdep.Dockerfile .
+    - name: Pin rmf repo to workflow commit
+      run: |
+        sudo apt-get update && sudo apt-get install -y yq
+    
+        echo "Pinning rmf/ros2 repo to commit:"
+        echo "  Full SHA : $GITHUB_SHA"
+        echo "  Short SHA: $(git rev-parse --short "$GITHUB_SHA")"
+    
+        yq -i '
+          .repositories."rmf/rmf_ros2".version = env(GITHUB_SHA)
+        ' build/rmf.repos
+    
+        echo "Updated rmf.repos entry:"
+        yq '.repositories."rmf/rmf_ros2"' build/rmf.repos
 
     - name: check out source code
       run:  mkdir build/rmf-src && vcs import build/rmf-src < build/rmf.repos
