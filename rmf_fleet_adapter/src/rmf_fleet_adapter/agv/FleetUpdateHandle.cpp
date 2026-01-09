@@ -1523,10 +1523,6 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
   if (diversion_msg == nullptr)
   {
     return;
-  }
-
-  if (diversion_active == diversion_msg->in_progress)
-    return;
 
   diversion_active = diversion_msg->in_progress;
 
