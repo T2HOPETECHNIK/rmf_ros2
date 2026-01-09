@@ -42,6 +42,7 @@
 #include <rmf_fleet_msgs/msg/charging_assignments.hpp>
 #include <rmf_fleet_msgs/msg/emergency_signal.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <rmf_fleet_msgs/msg/diversion_in_progress.hpp>
 
 #include <rmf_fleet_adapter/agv/FleetUpdateHandle.hpp>
 #include <rmf_fleet_adapter/StandardNames.hpp>
@@ -312,10 +313,17 @@ public:
   rxcpp::subjects::subject<bool> emergency_publisher;
   rxcpp::observable<bool> emergency_obs;
   bool emergency_active = false;
+
+  rxcpp::subscription diversion_in_progress_sub;
+  rxcpp::subjects::subject<rmf_fleet_msgs::msg::DiversionInProgress> diversion_publisher;
+  rxcpp::observable<rmf_fleet_msgs::msg::DiversionInProgress> diversion_in_progress_obs;
+
   // When an emergency (fire alarm) is active, this map says which level each
   // lift will "home" to (if any).
+  std::shared_ptr<rmf_fleet_msgs::msg::DiversionInProgress> diversion_active = nullptr; // Used to determine if diversion is in progress from robot fleet adapter for a specific robot
   std::unordered_map<std::string, std::string> emergency_level_for_lift;
   SharedPlanner emergency_planner;
+
 
   rclcpp::Subscription<rmf_fleet_msgs::msg::ChargingAssignments>::SharedPtr
     charging_assignments_sub = nullptr;
@@ -408,6 +416,9 @@ public:
           self->_pimpl->handle_emergency(msg->data);
         }
       });
+
+   
+
     handle->_pimpl->target_emergency_sub = handle->_pimpl->node->target_emergency_notice()
       .observe_on(rxcpp::identity_same_worker(handle->_pimpl->worker))
       .subscribe(
@@ -421,7 +432,20 @@ public:
     
     handle->_pimpl->emergency_planner =
       std::make_shared<std::shared_ptr<const rmf_traffic::agv::Planner>>(nullptr);
-
+    
+    handle->_pimpl->diversion_in_progress_obs =
+      handle->_pimpl->diversion_publisher.get_observable();
+    handle->_pimpl->diversion_in_progress_sub = handle->_pimpl->node->diversion_in_progress()
+      .observe_on(rxcpp::identity_same_worker(handle->_pimpl->worker))
+      .subscribe(
+        [w = handle->weak_from_this()](const auto& msg)
+        {
+          if (const auto self = w.lock())
+          {
+            self->_pimpl->handle_diversion_in_progress(msg);
+          }
+        });
+ 
     // TODO(MXG): This is a very crude implementation. We create a dummy set of
     // task planner parameters to stand in until the user sets the task planner
     // parameters. We'll distribute this shared_ptr to the robot contexts and
@@ -689,6 +713,8 @@ public:
   void handle_target_emergency(std::shared_ptr<rmf_fleet_msgs::msg::EmergencySignal> is_emergency);
   void update_emergency_planner();
 
+  void handle_diversion_in_progress(std::shared_ptr<rmf_fleet_msgs::msg::DiversionInProgress> diversion_msg);
+    
   void update_charging_assignments(const ChargingAssignments& assignments);
 
   nlohmann::json_schema::json_validator make_validator(

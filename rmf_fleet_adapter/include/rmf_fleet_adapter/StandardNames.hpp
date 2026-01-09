@@ -76,6 +76,9 @@ const std::string MutexGroupStatesTopicName = "mutex_group_states";
 const std::string MutexGroupManualReleaseTopicName =
   "mutex_group_manual_release";
 
+const std::string DiversionInProgressTopicName = "diversion_in_progress";
+
+
 const uint64_t Unclaimed = (uint64_t)(-1);
 
 } // namespace rmf_fleet_adapter

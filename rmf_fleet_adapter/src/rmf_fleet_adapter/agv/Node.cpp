@@ -73,6 +73,10 @@ std::shared_ptr<Node> Node::make(
   node->_dispenser_state_obs =
     node->create_observable<DispenserState>(
     DispenserStateTopicName, default_qos);
+  
+  node->_diversion_in_progress_obs =
+    node->create_observable<DiversionInProgress>(
+    DiversionInProgressTopicName, transient_qos);
 
   node->_emergency_notice_obs =
     node->create_observable<EmergencyNotice>(
@@ -203,6 +207,12 @@ auto Node::dispenser_result() const -> const DispenserResultObs&
 auto Node::dispenser_state() const -> const DispenserStateObs&
 {
   return _dispenser_state_obs->observe();
+}
+
+//==============================================================================
+auto Node::diversion_in_progress() const -> const DiversionInProgressObs&
+{
+  return _diversion_in_progress_obs->observe();
 }
 
 //==============================================================================

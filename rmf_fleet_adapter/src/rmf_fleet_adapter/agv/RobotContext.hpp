@@ -497,6 +497,9 @@ public:
   /// Check if emergency mode is currently active for this robot
   bool emergency_active() const;
 
+  /// Check if emergency mode is currently active for this robot
+  bool diversion_active() const;
+
   /// Get the navigation params for this robot, if it has any. This will only be
   /// available for EasyFullControl robots.
   std::shared_ptr<NavParams> nav_params() const;
@@ -752,6 +755,9 @@ public:
   /// FleetUpdateHandle::handle_emergency function.
   void _set_emergency(bool value);
 
+  /// Use this to set whether the robot is diverted. This should only be called
+  void _set_diversion(bool divert_msg); 
+
   /// Use this to change the charging settings for the robot and trigger a
   /// charger change notification.
   void _set_charging(std::size_t wp, bool waiting_for_charger);
@@ -901,6 +907,7 @@ private:
     std::make_unique<std::mutex>();
   RobotUpdateHandle::Commission _commission;
   bool _emergency = false;
+  bool _diversion = false;
   EasyFullControl::LocalizationRequest _localize;
 
   // Mode value for RobotMode message

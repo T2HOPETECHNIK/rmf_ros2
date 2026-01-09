@@ -643,6 +643,12 @@ bool RobotContext::emergency_active() const
 }
 
 //==============================================================================
+bool RobotContext::diversion_active() const
+{
+  return _diversion;
+}
+
+//==============================================================================
 std::shared_ptr<NavParams> RobotContext::nav_params() const
 {
   return _nav_params;
@@ -1361,6 +1367,12 @@ void RobotContext::_set_emergency(bool value)
   {
     filter_closed_lanes();
   }
+}
+
+//==============================================================================
+void RobotContext::_set_diversion(bool divert_msg)
+{
+  _diversion = divert_msg;
 }
 
 //==============================================================================

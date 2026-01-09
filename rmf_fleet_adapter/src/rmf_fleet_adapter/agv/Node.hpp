@@ -38,6 +38,7 @@
 #include <rmf_fleet_msgs/msg/mutex_group_request.hpp>
 #include <rmf_fleet_msgs/msg/mutex_group_states.hpp>
 #include <rmf_fleet_msgs/msg/emergency_signal.hpp>
+#include <rmf_fleet_msgs/msg/diversion_in_progress.hpp>
 
 #include <rmf_task_msgs/msg/api_request.hpp>
 #include <rmf_task_msgs/msg/api_response.hpp>
@@ -96,6 +97,10 @@ public:
   using DispenserState = rmf_dispenser_msgs::msg::DispenserState;
   using DispenserStateObs = rxcpp::observable<DispenserState::SharedPtr>;
   const DispenserStateObs& dispenser_state() const;
+
+  using DiversionInProgress = rmf_fleet_msgs::msg::DiversionInProgress;
+  using DiversionInProgressObs = rxcpp::observable<DiversionInProgress::SharedPtr>;
+  const DiversionInProgressObs& diversion_in_progress() const;
 
   using EmergencyNotice = std_msgs::msg::Bool;
   using EmergencyNoticeObs = rxcpp::observable<EmergencyNotice::SharedPtr>;
@@ -190,6 +195,7 @@ private:
   DispenserRequestPub _dispenser_request_pub;
   Bridge<DispenserResult> _dispenser_result_obs;
   Bridge<DispenserState> _dispenser_state_obs;
+  Bridge<DiversionInProgress> _diversion_in_progress_obs;
   Bridge<EmergencyNotice> _emergency_notice_obs;
   Bridge<TargetEmergencyNotice> _target_emergency_notice_obs;
   IngestorRequestPub _ingestor_request_pub;

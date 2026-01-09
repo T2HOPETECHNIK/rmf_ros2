@@ -297,7 +297,7 @@ public:
     if (server_uri)
       broadcast_client = rmf_websocket::BroadcastClient::make(
         *server_uri, node);
-
+    
     auctioneer = bidding::Auctioneer::make(
       node,
       [this](
@@ -769,13 +769,14 @@ public:
         task_id.c_str());
 
       dispatch_state->status = DispatchState::Status::FailedToAssign;
+
       nlohmann::json error;
       // TODO(MXG): Standardize the codes
       error["code"] = 10;
       error["category"] = "rejection";
       error["detail"] =
         "No fleet adapters offered a bid for task [" + task_id + "]";
-
+      
       dispatch_state->errors.push_back(std::move(error));
 
       if (on_change_fn)

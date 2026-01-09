@@ -1516,6 +1516,25 @@ void FleetUpdateHandle::Implementation::update_emergency_planner()
   *emergency_planner = std::make_shared<const rmf_traffic::agv::Planner>(
     emergency_config, rmf_traffic::agv::Planner::Options(nullptr));
 }
+//==============================================================================
+void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
+  std::shared_ptr<rmf_fleet_msgs::msg::DiversionInProgress> diversion_msg)
+{
+  bool execute = false;
+  if (diversion_msg == nullptr)
+  {
+    return;
+  }
+  
+  diversion_active->robot_name = diversion_msg->robot_name;
+  diversion_active->in_progress = diversion_msg->in_progress;
+
+  for (const auto& [context, _] : task_managers)
+  {
+    context->_set_diversion(diversion_active->in_progress);
+  }
+  //diversion_publisher.get_subscriber().on_next(diversion_active->in_progress);
+}
 
 //==============================================================================
 void FleetUpdateHandle::Implementation::update_charging_assignments(
@@ -1843,6 +1862,10 @@ void FleetUpdateHandle::add_robot(
             context->_set_emergency(true);
           }
 
+          if (fleet->_pimpl->diversion_active->in_progress)
+          {
+            context->_set_diversion(fleet->_pimpl->diversion_active->in_progress);
+          }
           // TODO(MXG): We need to perform this test because we do not currently
           // support the distributed negotiation in unit test environments. We
           // should create an abstract NegotiationRoom interface in rmf_traffic and
