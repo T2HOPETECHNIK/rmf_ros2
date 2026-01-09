@@ -1528,7 +1528,7 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
   
   for (const auto& [context, _] : task_managers)
   {
-    if (diversion_msg->robot_name == context->get_name())
+    if (diversion_msg->robot_name == context->name())
       context->_set_diversion(diversion_msg->in_progress);
   }
   //diversion_publisher.get_subscriber().on_next(diversion_active->in_progress);
@@ -1860,7 +1860,7 @@ void FleetUpdateHandle::add_robot(
             context->_set_emergency(true);
           }
 
-          if (fleet->_pimpl->diversion_active->in_progress)
+          if (fleet->_pimpl->diversion_active)
           {
             context->_set_diversion(true);
             // if (diversion_active->robot_name == context->get_name())
