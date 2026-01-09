@@ -1523,7 +1523,8 @@ void FleetUpdateHandle::Implementation::handle_diversion_in_progress(
   if (diversion_msg == nullptr)
   {
     return;
-
+  }
+  
   diversion_active = diversion_msg->in_progress;
 
   RCLCPP_INFO(
