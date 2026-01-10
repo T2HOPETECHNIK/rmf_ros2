@@ -1586,6 +1586,10 @@ void RobotContext::_check_mutex_groups(
     }
     else if (_locked_mutex_groups.count(assignment.group) == 0)
     {
+
+      RCLCPP_INFO(
+            _node->get_logger(),
+            "Releasing mutex groups because assignments doesn't match");
       // This assignment does not match either the requested nor any currently
       // locked mutex groups. This is an error so let's release it.
       _node->mutex_group_request()->publish(
