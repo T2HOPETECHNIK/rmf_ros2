@@ -118,7 +118,7 @@ class ReadOnlyMutexSupervisor(Node):
     def fleet_state_callback(self, msg):
         """Handle the fleet state and manage mutexes for robots."""
         if not self.fleet_name or msg.name not in self.fleet_name:
-          return
+            return
         for robot in msg.robots:
             robot_in_mutex = False
             x = robot.location.x
