@@ -52,7 +52,7 @@ jobs:
 
     - name: clean up local docker images 
       run: | 
-        docker rmi hopetechnik/rmf-core:${{ env.git_sha_short 
+        docker rmi hopetechnik/rmf-core:${{ env.git_sha_short }}
         docker rmi hopetechnik/rmf-core:latest 
         docker rmi hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }} 
         docker rmi rmf-core:latest 
