@@ -88,7 +88,8 @@ public:
             g_it->second.erase(c_it);
             RCLCPP_INFO(
                 get_logger(),
-                "Erased mutex group due to claim time");
+                "Erased mutex group due to claim time for mutex group: %s",
+                request.group);
             pick_next(request.group);
             state_pub->publish(latest_states);
           }
@@ -149,7 +150,8 @@ public:
         claims.erase(remove_claim);
         RCLCPP_INFO(
             get_logger(),
-            "Erased mutex group due to heart beat");
+            "Erased mutex group due to heart beat for: %s", 
+            group);
       }
 
       if (need_next_pick)
