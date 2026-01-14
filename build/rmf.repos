@@ -33,8 +33,8 @@ repositories:
     version: 3190409
   rmf/rmf_traffic:
     type: git
-    url: https://github.com/open-rmf/rmf_traffic.git
-    version: 9c7747dc
+    url: git@github.com:T2HOPETECHNIK/rmf_traffic.git
+    version: cgh-main
   rmf/rmf_traffic_editor:
     type: git
     url: https://github.com/open-rmf/rmf_traffic_editor.git
