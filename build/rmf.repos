@@ -26,7 +26,7 @@ repositories:
   rmf/rmf_ros2:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_ros2.git
-    version: b38963c
+    version: cgh_ot_main
   rmf/rmf_task:
     type: git
     url: https://github.com/open-rmf/rmf_task.git
