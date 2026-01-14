@@ -2,9 +2,9 @@ name: Build rmf-HT docker images
 
 on:
   push:
-    branches: ['cgh_ot_main', 'SBH-71-Add-auto-build-for-rmf-ros2']
+    branches: ['cgh_ot_main']
   pull_request:
-    branches: ['cgh_ot_main', 'SBH-71-Add-auto-build-for-rmf-ros2']
+    branches: ['cgh_ot_main']
   schedule:
     - cron: "08 0 * * *"
   workflow_dispatch:
@@ -30,12 +30,20 @@ jobs:
     - name: check out source code
       run:  mkdir build/rmf-src && vcs import build/rmf-src < build/rmf.repos
       
-    - name: Build and tag rmf-ros2 Docker image
-      run: |  
-        docker build --no-cache=true -t rmf-ros2:latest -f build/Dockerfile .
-        docker tag rmf-ros2:latest hopetechnik/rmf-core:${{ env.git_sha_short }}
-        docker tag rmf-ros2:latest hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }}
-        docker tag rmf-ros2:latest hopetechnik/rmf-core:latest
+    - name: Build rmf-ros2 Docker image
+      run: docker build --no-cache=true -t rmf-ros2:latest -f build/Dockerfile .
+
+    - name: Tag rmf-ros2 image
+      run: docker tag rmf-ros2:latest hopetechnik/rmf-core:${{ env.git_sha_short }}
+
+    - name: Tag rmf-ros2 image with branch
+      run: docker tag rmf-ros2:latest hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }}
+
+    - name: Tag latest
+      run: docker tag rmf-ros2:latest hopetechnik/rmf-core:latest
+
+    - name: Tag ros-dep
+      run: docker tag rosdep:latest hopetechnik/rosdep:latest
       
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
@@ -43,20 +51,32 @@ jobs:
         username: ${{ vars.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Push images to docker hub 
-      run: | 
-        docker push hopetechnik/rmf-core:${{ env.git_sha_short }}
-        docker push hopetechnik/rosdep:latest
-        docker push hopetechnik/rmf-core:latest
-        docker push hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }}
+    - name: Push rmf-ros2 image with commit SHA
+      run: docker push hopetechnik/rmf-core:${{ env.git_sha_short }}
 
-    - name: clean up local docker images 
-      run: | 
-        docker rmi hopetechnik/rmf-core:${{ env.git_sha_short }}
-        docker rmi hopetechnik/rmf-core:latest 
-        docker rmi hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }} 
-        docker rmi rosdep:latest
-        docker rmi hopetechnik/rosdep:latest
+    - name: Push the ros dep latest
+      run: docker push hopetechnik/rosdep:latest
+
+    - name: Push the latest
+      run: docker push hopetechnik/rmf-core:latest
+
+    - name: Push rmf-ros2 image with branch and commit SHA
+      run: docker push hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }}
+
+    - name: Remove local rmf-ros2 image with commit SHA
+      run: docker rmi hopetechnik/rmf-core:${{ env.git_sha_short }} || true
+
+    - name: Remove local rmf-ros2 image with commit SHA
+      run: docker rmi hopetechnik/rmf-core:latest || true
+
+    - name: Remove local rmf-ros2 image with branch and commit SHA
+      run: docker rmi hopetechnik/rmf-core:${{ env.branch_name }}-${{ env.git_sha_short }} || true
+
+    - name: Remove local rmf-ros2 latest image
+      run: docker rmi rmf-core:latest || true
+    
+    - name: Remove local rmf-ros2 latest image
+      run: docker rmi rosdep:latest || true
 
     - name: remove latest files
       run: rm -rf build/rmf-src
