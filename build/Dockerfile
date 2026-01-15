@@ -12,6 +12,7 @@ RUN apt update
 RUN mkdir -p /opt/rmf/src
 WORKDIR /opt/rmf
 RUN echo ${NETRC} > /root/.netrc
+RUN apt-get install nlohmann-json3-dev
 
 RUN rosdep update --rosdistro $ROS_DISTRO
 RUN rosdep install --from-paths src --ignore-src --rosdistro $ROS_DISTRO \
