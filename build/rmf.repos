@@ -22,7 +22,7 @@ repositories:
   rmf/rmf_internal_msgs:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_internal_msgs.git
-    version: 3acff47
+    version: cgh-main
   rmf/rmf_ros2:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_ros2.git
