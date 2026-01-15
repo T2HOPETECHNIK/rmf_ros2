@@ -89,7 +89,6 @@ public:
             RCLCPP_INFO(
                 get_logger(),
                 "Erased mutex group due to claim time");
-            }
             pick_next(request.group);
             state_pub->publish(latest_states);
           }
@@ -151,7 +150,6 @@ public:
         RCLCPP_INFO(
             get_logger(),
             "Erased mutex group due to heart beat");
-        }
       }
 
       if (need_next_pick)
