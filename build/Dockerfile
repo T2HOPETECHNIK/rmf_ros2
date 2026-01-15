@@ -13,9 +13,6 @@ RUN mkdir -p /opt/rmf/src
 WORKDIR /opt/rmf
 RUN echo ${NETRC} > /root/.netrc
 
-# copy rmf source repos
-COPY /build/rmf-src src
-
 RUN rosdep update --rosdistro $ROS_DISTRO
 RUN rosdep install --from-paths src --ignore-src --rosdistro $ROS_DISTRO \
     --skip-keys roscpp  \
@@ -30,11 +27,10 @@ RUN rosdep install --from-paths src --ignore-src --rosdistro $ROS_DISTRO \
     --skip-keys dwa_local_planner \
     --skip-keys map_server \
     --skip-keys ignition \
-     --skip-keys rmf_traffic_ros2 \
-    --skip-keys rmf_reservation_msgs \
-    --skip-keys rmf_fleet_adapter \
-    --skip-keys rmf_reservation_node \
     -y
+
+# copy rmf source repos
+COPY /build/rmf-src src
 
 RUN . /opt/ros/$ROS_DISTRO/setup.sh \
   && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release -DNO_DOWNLOAD_MODELS=True
