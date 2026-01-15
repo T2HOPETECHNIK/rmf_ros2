@@ -24,7 +24,6 @@ jobs:
       run: echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
     - name: build rosdep 
-
       run: docker build --no-cache=true -t rosdep:latest -f build/builder-rosdep.Dockerfile .
 
     - name: check out source code
