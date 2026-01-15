@@ -128,6 +128,13 @@ inline std::string print_waypoint(
 
   ss << wp.get_map_name() << " <" << wp.get_location().transpose() << "> ["
      << wp.name_or_index() << "]";
+
+  const auto& mutex = wp.in_mutex_group();
+  if (!mutex.empty())
+  {
+    ss << " [mutex: " << mutex << "]";
+  }
+
   return ss.str();
 }
 
@@ -201,6 +208,13 @@ inline std::string print_lane(
   const auto& lane = graph.get_lane(i_lane);
   ss << "lane " << i_lane << ": " << print_lane_node(lane.entry(), graph)
      << " -> " << print_lane_node(lane.exit(), graph);
+
+  const auto& mutex = lane.properties().in_mutex_group();
+  if (!mutex.empty())
+  {
+    ss << " [mutex: " << mutex  << "]";
+  }
+
   return ss.str();
 }
 
@@ -734,7 +748,9 @@ public:
     rmf_traffic::Time claim_time);
 
   /// Retain only the mutex groups listed in the set. Release all others.
-  void retain_mutex_groups(const std::unordered_set<std::string>& groups);
+  void retain_mutex_groups(
+    const std::unordered_set<std::string>& groups,
+    const std::string& backtrace);
 
   void schedule_itinerary(
     std::shared_ptr<rmf_traffic::PlanId> plan_id,
@@ -992,8 +1008,11 @@ private:
   void _check_mutex_groups(const rmf_fleet_msgs::msg::MutexGroupStates& states);
   void _retain_mutex_groups(
     const std::unordered_set<std::string>& retain,
-    std::unordered_map<std::string, TimeMsg>& _groups);
-  void _release_mutex_group(const MutexGroupData& data) const;
+    std::unordered_map<std::string, TimeMsg>& _groups,
+    const std::string& backtrace);
+  void _release_mutex_group(
+    const MutexGroupData& data,
+    const std::string& backtrace) const;
   void _publish_mutex_group_requests();
   void _handle_mutex_group_manual_release(
     const rmf_fleet_msgs::msg::MutexGroupManualRelease& msg);
