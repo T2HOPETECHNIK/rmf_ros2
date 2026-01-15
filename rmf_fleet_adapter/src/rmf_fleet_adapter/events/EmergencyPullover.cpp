@@ -154,7 +154,28 @@ auto EmergencyPullover::Active::make(
       r->forfeit({});
       return nullptr;
     });
+  
+  active->_replan_request_subscription =
+    active->_context->observe_replan_request()
+    .observe_on(rxcpp::identity_same_worker(active->_context->worker()))
+    .subscribe(
+    [w = active->weak_from_this()](const auto&)
+    {
+      const auto self = w.lock();
+      if (self && !self->_find_path_service)
+      {
+        RCLCPP_INFO(
+          self->_context->node()->get_logger(),
+          "Replanning requested for [%s] during Emergency",
+          self->_context->requester_id().c_str());
 
+        if (const auto c = self->_context->command())
+          c->stop();
+
+        self->_find_plan();
+      }
+    });
+  
   active->_find_plan();
   return active;
 }
