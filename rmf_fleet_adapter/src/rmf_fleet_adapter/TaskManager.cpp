@@ -432,11 +432,11 @@ void copy_booking_data(
   {
     booking_json["labels"] = booking.labels();
   }
-  const auto priority = booking.priority();
-  if (priority)
-  {
-    booking_json["priority"] = booking.priority()->serialize();
-  }
+  //const auto priority = booking.priority();
+  //if (priority)
+  //{
+  //  booking_json["priority"] = booking.priority()->serialize();
+  //}
 }
 
 //==============================================================================
