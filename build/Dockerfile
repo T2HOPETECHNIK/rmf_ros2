@@ -30,6 +30,10 @@ RUN rosdep install --from-paths src --ignore-src --rosdistro $ROS_DISTRO \
     --skip-keys dwa_local_planner \
     --skip-keys map_server \
     --skip-keys ignition \
+     --skip-keys rmf_traffic_ros2 \
+    --skip-keys rmf_reservation_msgs \
+    --skip-keys rmf_fleet_adapter \
+    --skip-keys rmf_reservation_node \
     -y
 
 RUN . /opt/ros/$ROS_DISTRO/setup.sh \
