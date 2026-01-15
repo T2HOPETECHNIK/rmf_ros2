@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ['cgh_ot_main', 'SC2-800_commit_ros_sep']
   schedule:
-    - cron: "08 0 * * *"
+    - cron: "07 0 * * *"
   workflow_dispatch:
 
 jobs:
