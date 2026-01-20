@@ -178,6 +178,7 @@ public:
   using DispatchStatesPub = rclcpp::Publisher<DispatchStatesMsg>;
   DispatchStatesPub::SharedPtr dispatch_states_pub;
   rclcpp::TimerBase::SharedPtr dispatch_states_pub_timer;
+  std::unordered_map<TaskID, rclcpp::TimerBase::SharedPtr> retry_timers;
 
   uint64_t next_dispatch_command_id = 0;
   std::unordered_map<uint64_t, DispatchCommandMsg> lingering_commands;
@@ -778,19 +779,27 @@ public:
           on_change_fn(*dispatch_state);
         
         retry_timers[task_id] = node->create_wall_timer(
-          std::chrono::seconds(180),
-          [this, task_id]()
-          {
-            if (active_dispatch_states.count(task_id) == 0)
-              return;
-            
-            RCLCPP_INFO(node->get_logger(),
-              "Retrying bid request for task [%s]",
-              task_id.c_str());
-            
-            auctioneer->request_bid(task_id);
-            retry_timers.erase(task_id);
-          });
+        std::chrono::seconds(10),
+        [this, task_id]()
+        {
+          const auto it = active_dispatch_states.find(task_id);
+          if (it == active_dispatch_states.end())
+            return;
+
+          RCLCPP_INFO(
+            node->get_logger(),
+            "Retrying bid request for task [%s]",
+            task_id.c_str());
+
+          auto bid_notice = rmf_task_msgs::build<bidding::BidNoticeMsg>()
+            .request(it->second->request.dump())
+            .task_id(task_id)
+            .time_window(bidding_time_window);
+
+          auctioneer->request_bid(bid_notice);
+          retry_timers.erase(task_id);
+        });
+
         return;
       }
       
