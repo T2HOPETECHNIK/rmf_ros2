@@ -214,7 +214,7 @@ public:
   {
     // ros2 param
     double bidding_time_window_param =
-      node->declare_parameter<double>("bidding_time_window", 2.0);
+      node->declare_parameter<double>("bidding_time_window", 10.0);
     RCLCPP_INFO(node->get_logger(),
       " Declared Time Window Param as: %f secs", bidding_time_window_param);
     bidding_time_window = rmf_traffic_ros2::convert(
@@ -763,10 +763,43 @@ public:
 
     if (!winner)
     {
+      dispatch_state->retry_count++;
+      
+      if (dispatch_state->retry_count <= DispatchState::max_retries)
+      {
+        RCLCPP_WARN(node->get_logger(),
+          "Dispatcher Bidding Result: task [%s] has no submissions during "
+          "bidding. Retrying... (attempt %d/%d)",
+          task_id.c_str(),
+          dispatch_state->retry_count,
+          DispatchState::max_retries);
+        
+        if (on_change_fn)
+          on_change_fn(*dispatch_state);
+        
+        retry_timers[task_id] = node->create_wall_timer(
+          std::chrono::seconds(180),
+          [this, task_id]()
+          {
+            if (active_dispatch_states.count(task_id) == 0)
+              return;
+            
+            RCLCPP_INFO(node->get_logger(),
+              "Retrying bid request for task [%s]",
+              task_id.c_str());
+            
+            auctioneer->request_bid(task_id);
+            retry_timers.erase(task_id);
+          });
+        return;
+      }
+      
+      // Max retries exceeded - fail the task
       RCLCPP_WARN(node->get_logger(),
         "Dispatcher Bidding Result: task [%s] has no submissions during "
-        "bidding. Dispatching failed, and the task will not be performed.",
-        task_id.c_str());
+        "bidding after %d retries. Dispatching failed, and the task will not be performed.",
+        task_id.c_str(),
+        DispatchState::max_retries);
 
       dispatch_state->status = DispatchState::Status::FailedToAssign;
       nlohmann::json error;
@@ -774,7 +807,8 @@ public:
       error["code"] = 10;
       error["category"] = "rejection";
       error["detail"] =
-        "No fleet adapters offered a bid for task [" + task_id + "]";
+        "No fleet adapters offered a bid for task [" + task_id + "] after " +
+        std::to_string(DispatchState::max_retries) + " retries";
 
       dispatch_state->errors.push_back(std::move(error));
 

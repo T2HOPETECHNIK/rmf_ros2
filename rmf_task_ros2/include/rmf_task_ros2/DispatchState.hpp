@@ -81,6 +81,10 @@ struct DispatchState
   /// task request form
   nlohmann::json request;
 
+  int retry_count = 0;
+  
+  static constexpr int max_retries = 5;
+
   DispatchState(std::string task_id, rmf_traffic::Time submission_time);
 };
 
