@@ -1588,6 +1588,11 @@ void TaskManager::_begin_next_task()
 //==============================================================================
 void TaskManager::_begin_pullover()
 {
+  if (_emergency_pullover && !_emergency_pullover.is_finished())
+  {
+    return;
+  }
+
   _finished_waiting = false;
   auto task_id = "emergency_pullover." + _context->name() + "."
     + _context->group() + "-"
