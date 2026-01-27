@@ -1411,7 +1411,16 @@ void FleetUpdateHandle::Implementation::handle_emergency(
 
   for (const auto& [context, _] : task_managers)
   {
-    context->_set_emergency(emergency_signal);
+    
+    for (const auto& zone_name : emergency_signal->zones)
+    {
+      // For the current implementation, the zone is only on a certail lvl 
+      if (context->map() == name)
+      {
+        context->_set_emergency(emergency_signal);
+        break;
+      }
+    }
   }
   emergency_publisher.get_subscriber().on_next(emergency_signal);
 }
