@@ -70,6 +70,10 @@ public:
   void finish_bidding_process();
 
   bool determine_winner(const OpenBid& bidding_task);
+  
+  rclcpp::TimerBase::SharedPtr retry_timer_;
+  // check and retry failed bids, send failed bid back to open bid queue
+  void retry_failed_bid(const OpenBid& bidding_task);
 
   std::optional<Response::Proposal> evaluate(const Responses& responses);
 
