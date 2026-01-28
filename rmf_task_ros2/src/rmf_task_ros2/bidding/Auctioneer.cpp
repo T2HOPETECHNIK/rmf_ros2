@@ -19,6 +19,9 @@
 
 namespace rmf_task_ros2 {
 namespace bidding {
+// retry bidding parameters
+#define MAX_BIDDING_RETRY_COUNT 3
+#define RE_BID_COOLDOWN 60 // seconds
 
 //==============================================================================
 Auctioneer::Implementation::Implementation(
@@ -164,6 +167,41 @@ bool Auctioneer::Implementation::determine_winner(
   bidding_result_callback(task_id, winner, errors);
 
   return true;
+}
+
+void Auctioneer::Implementation::retry_failed_bid(const OpenBid& bidding_task)
+{
+  if (bidding_task.responses.size() == 0 &&
+      bidding_task.retry_count < MAX_BIDDING_RETRY_COUNT)
+  {
+    unsigned int next_retry = bidding_task.retry_count + 1;
+
+    RCLCPP_WARN(
+      node->get_logger(),
+      "Bidding for Task [%s] failed to receive any bids. Retrying in %d seconds... (%u/%d)",
+      bidding_task.bid_notice.task_id.c_str(),
+      RE_BID_COOLDOWN,
+      next_retry,
+      MAX_BIDDING_RETRY_COUNT);
+    
+    retry_timer_.reset();
+    
+    // Create a one shot wall timer
+    retry_timer_ = node->create_wall_timer(
+      std::chrono::seconds(RE_BID_COOLDOWN),
+      [this, bidding_task, next_retry] ()
+      {
+        RCLCPP_WARN(
+          node->get_logger(),
+          "Failed Bidding Task [%s] added back into bidding queue.",
+          bidding_task.bid_notice.task_id.c_str());
+          
+          // check void Auctioneer::Implementation::request_bid(const BidNoticeMsg& bid_notice)
+          open_bid_queue.push(OpenBid{bidding_task.bid_notice, node->now(), {}, next_retry});
+          // clear the timer
+          this->retry_timer_.reset();
+      });
+  }
 }
 
 //==============================================================================
