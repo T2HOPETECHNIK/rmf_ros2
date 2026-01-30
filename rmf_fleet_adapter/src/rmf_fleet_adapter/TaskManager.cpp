@@ -1735,7 +1735,8 @@ void TaskManager::_begin_waiting()
     return;
   }
 
-  if (_context->location().empty())
+  const auto location = _context->location();
+  if (location.empty())
   {
     RCLCPP_WARN(
       _context->node()->get_logger(),
@@ -1746,10 +1747,10 @@ void TaskManager::_begin_waiting()
   }
 
   // Determine the waypoint closest to the robot
-  std::size_t waiting_point = _context->location().front().waypoint();
+  std::size_t waiting_point = location.front().waypoint();
   double min_dist = std::numeric_limits<double>::max();
   const auto& robot_position = _context->position();
-  for (const auto& start : _context->location())
+  for (const auto& start : location)
   {
     const auto waypoint = start.waypoint();
     const auto& waypoint_location =
