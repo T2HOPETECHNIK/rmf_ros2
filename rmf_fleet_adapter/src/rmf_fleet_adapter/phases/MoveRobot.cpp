@@ -34,7 +34,6 @@ MoveRobot::ActivePhase::ActivePhase(
   const auto dest = destination(
     waypoints.back(), _context->planner()->get_configuration().graph());
   const auto& graph = _context->navigation_graph();
-
   oss << "Moving to " << dest << " via";
   for (const auto& wp : waypoints)
   {
@@ -156,7 +155,7 @@ MoveRobot::Action::Action(
   _plan_id{plan_id},
   _tail_period{tail_period}
 {
-   for (const auto& wp : _waypoints)
+  for (const auto& wp : _waypoints)
   {
     if (wp.graph_index().has_value())
     {
