@@ -26,7 +26,7 @@ repositories:
   rmf/rmf_ros2:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_ros2.git
-    version: SC2-805-Cherry-pick-fixes-from-open-rmf-for-mutex-group-release-and-emergency-pullover-for-ROS2-2
+    version: SC2-819-Chery-Pick-mutex-group-fix-for-rmf-ros2
   rmf/rmf_task:
     type: git
     url: https://github.com/open-rmf/rmf_task.git
