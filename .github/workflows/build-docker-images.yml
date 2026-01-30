@@ -1,4 +1,4 @@
-name: Build rmf-HT docker images
+name: Build rmf-HT docker images for cherry pick
 
 on:
   push:
