@@ -933,6 +933,7 @@ std::optional<ExecutePlan> ExecutePlan::make(
         rmf_traffic::schedule::Itinerary>(full_itinerary);
       auto data = LockMutexGroup::Data{
         new_mutex_groups,
+        wp.graph_index(),
         hold_map,
         hold_position,
         hold_time,
@@ -971,6 +972,7 @@ std::optional<ExecutePlan> ExecutePlan::make(
           break;
         }
       }
+
       // If we need to lock mutex groups to reach the next waypoint and we
       // didn't have any mutex groups locked previously, then we definitely
       // have a change in mutex groups, so we will need to insert a locking

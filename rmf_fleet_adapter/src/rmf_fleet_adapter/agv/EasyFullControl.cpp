@@ -1020,9 +1020,11 @@ void EasyCommandHandle::follow_new_path(
     }
   }
 
+  const auto current_location = context->location();
+
   if (!opt_initial_map.has_value())
   {
-    for (const auto& l : context->location())
+    for (const auto& l : current_location)
     {
       opt_initial_map = graph.get_waypoint(l.waypoint()).get_map_name();
       break;
@@ -1043,16 +1045,15 @@ void EasyCommandHandle::follow_new_path(
   std::string initial_map = *opt_initial_map;
 
   std::vector<EasyFullControl::CommandExecution> queue;
-  const auto& current_location = context->location();
 
   bool found_connection = false;
   std::size_t i0 = 0;
   for (std::size_t i = 0; i < waypoints.size(); ++i)
   {
     const auto& wp = waypoints[i];
-    if (wp.graph_index().has_value())
+    for (const auto& l : current_location)
     {
-      for (const auto& l : current_location)
+      if (wp.graph_index().has_value())
       {
         if (nav_params->in_same_stack(*wp.graph_index(),
           l.waypoint()) && !l.lane().has_value())
@@ -1103,10 +1104,7 @@ void EasyCommandHandle::follow_new_path(
           }
         }
       }
-    }
-    else
-    {
-      for (const auto& l : current_location)
+      else
       {
         Eigen::Vector2d p_l;
         if (l.location().has_value())

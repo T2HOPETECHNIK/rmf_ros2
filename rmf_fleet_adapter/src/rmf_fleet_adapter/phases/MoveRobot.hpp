@@ -97,6 +97,7 @@ struct MoveRobot
 
     agv::RobotContextPtr _context;
     std::vector<rmf_traffic::agv::Plan::Waypoint> _waypoints;
+    bool _has_nav_elements;
     PlanIdPtr _plan_id;
     std::optional<rmf_traffic::Duration> _tail_period;
     std::string _description;
