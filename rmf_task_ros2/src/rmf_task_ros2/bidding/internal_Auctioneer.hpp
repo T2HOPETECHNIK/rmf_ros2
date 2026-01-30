@@ -44,6 +44,7 @@ public:
     BidNoticeMsg bid_notice;
     builtin_interfaces::msg::Time start_time;
     std::vector<bidding::Response> responses;
+    unsigned int retry_count = 0; // for re-adding failed bids
   };
 
   bool bidding_in_process = false;

@@ -446,7 +446,7 @@ std::function<rmf_traffic::Time()> RobotContext::clock() const
 }
 
 //==============================================================================
-rmf_traffic::agv::Plan::StartSet& RobotContext::location() const
+rmf_traffic::agv::Plan::StartSet RobotContext::location() const
 {
    if (const auto wp_ptr = _current_event_waypoint.lock())
   {

@@ -2,7 +2,7 @@ name: Build rmf-HT docker images
 
 on:
   push:
-    branches: ['cgh_ot_main', 'SC2-805-Cherry-pick-fixes-from-open-rmf-for-mutex-group-release-and-emergency-pullover-for-ROS2-2']
+    branches: ['cgh_ot_main', 'SC2-819-Chery-Pick-mutex-group-fix-for-rmf-ros2']
   pull_request:
     branches: ['cgh_ot_main']
   schedule:
