@@ -90,7 +90,12 @@ class ReadOnlyMutexSupervisor(Node):
 
     def graph_callback(self, msg):
         """Get all the mutexes from the navigation graph."""
+
         self.get_logger().info('I heard: "%s"' % msg.name)
+        if msg.name != self.fleet_name:
+            self.get_logger().info('Ignoring: "%s"' % msg.name)
+            return
+        
         for node in msg.vertices:
             for param in node.params:
                 if param.name == 'mutex':
