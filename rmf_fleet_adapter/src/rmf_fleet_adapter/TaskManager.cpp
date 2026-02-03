@@ -940,6 +940,24 @@ void TaskManager::set_idle_task(rmf_task::ConstRequestFactoryPtr task)
 }
 
 //==============================================================================
+void TaskManager::use_default_idle_task()
+{
+  auto fleet_handle = _fleet_handle.lock();
+  if (!fleet_handle)
+  {
+    RCLCPP_ERROR(
+      _context->node()->get_logger(),
+      "Attempting to use default idle task for [%s] but its fleet is shutting down",
+      _context->requester_id().c_str());
+    return;
+  }
+  const auto& impl =
+    agv::FleetUpdateHandle::Implementation::get(*fleet_handle);
+
+  set_idle_task(impl.idle_task);
+}
+
+//==============================================================================
 void TaskManager::set_queue(
   const std::vector<TaskManager::Assignment>& assignments)
 {
@@ -1363,6 +1381,11 @@ bool TaskManager::cancel_task(
 {
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return false;
+    }
+
     _task_state_update_available = true;
     _active_task.cancel(std::move(labels), _context->now());
     return true;
@@ -1387,6 +1410,11 @@ bool TaskManager::kill_task(
 {
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return false;
+    }
+
     _task_state_update_available = true;
     _active_task.kill(std::move(labels), _context->now());
     return true;
@@ -1409,6 +1437,11 @@ bool TaskManager::quiet_cancel_task(
 {
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return false;
+    }
+
     _task_state_update_available = true;
     _active_task.quiet_cancel(std::move(labels), _context->now());
     return true;
@@ -1555,6 +1588,11 @@ void TaskManager::_begin_next_task()
 //==============================================================================
 void TaskManager::_begin_pullover()
 {
+  if (_emergency_pullover && !_emergency_pullover.is_finished())
+  {
+    return;
+  }
+
   _finished_waiting = false;
   auto task_id = "emergency_pullover." + _context->name() + "."
     + _context->group() + "-"
@@ -1689,9 +1727,16 @@ void TaskManager::_begin_waiting()
   }
 
   if (!_responsive_wait_enabled)
+  {
+    if (_waiting)
+    {
+      _waiting.cancel({"Idle behavior updated"}, _context->now());
+    }
     return;
+  }
 
-  if (_context->location().empty())
+  const auto location = _context->location();
+  if (location.empty())
   {
     RCLCPP_WARN(
       _context->node()->get_logger(),
@@ -1702,10 +1747,10 @@ void TaskManager::_begin_waiting()
   }
 
   // Determine the waypoint closest to the robot
-  std::size_t waiting_point = _context->location().front().waypoint();
+  std::size_t waiting_point = location.front().waypoint();
   double min_dist = std::numeric_limits<double>::max();
   const auto& robot_position = _context->position();
-  for (const auto& start : _context->location())
+  for (const auto& start : location)
   {
     const auto waypoint = start.waypoint();
     const auto& waypoint_location =
@@ -1763,6 +1808,7 @@ void TaskManager::_resume_from_emergency()
       }
 
       self->_emergency_pullover = ActiveTask();
+      self->_context->current_task_id(std::nullopt);
 
       if (!self->_emergency_pullover_interrupt_token.has_value())
       {
@@ -1777,6 +1823,13 @@ void TaskManager::_resume_from_emergency()
           {"emergency finished"},
           self->_context->now());
         self->_emergency_pullover_interrupt_token = std::nullopt;
+
+        RCLCPP_INFO(
+          self->_context->node()->get_logger(),
+          "Resume execution of task [%s] for [%s] after emergency pullover",
+          self->_active_task.id().c_str(),
+          self->_context->requester_id().c_str());
+        self->_context->current_task_id(self->_active_task.id());
       }
       else
       {
@@ -2783,6 +2836,11 @@ void TaskManager::_handle_interrupt_request(
 
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return;
+    }
+
     _task_state_update_available = true;
     return _send_token_success_response(
       _active_task.add_interruption(
@@ -2808,6 +2866,11 @@ void TaskManager::_handle_resume_request(
 
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return;
+    }
+
     _task_state_update_available = true;
     auto unknown_tokens = _active_task.remove_interruption(
       request_json["for_tokens"].get<std::vector<std::string>>(),
@@ -2848,6 +2911,11 @@ void TaskManager::_handle_rewind_request(
 
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return;
+    }
+
     _task_state_update_available = true;
     _active_task.rewind(request_json["phase_id"].get<uint64_t>());
     return _send_simple_success_response(request_id);
@@ -2871,6 +2939,12 @@ void TaskManager::_handle_skip_phase_request(
 
   if (_active_task && _active_task.id() == task_id)
   {
+
+    if (_emergency_active)
+    {
+      return;
+    }
+
     _task_state_update_available = true;
     return _send_token_success_response(
       _active_task.skip(
@@ -2894,10 +2968,15 @@ void TaskManager::_handle_undo_skip_phase_request(
   if (!_validate_request_message(request_json, request_validator, request_id))
     return;
 
-  const auto& task_id = request_json["for_task"];
+  const auto& task_id = request_json["for_task"].get<std::string>();
 
   if (_active_task && _active_task.id() == task_id)
   {
+    if (_emergency_active)
+    {
+      return;
+    }
+
     _task_state_update_available = true;
     auto unknown_tokens = _active_task.remove_skips(
       request_json["for_tokens"].get<std::vector<std::string>>(),

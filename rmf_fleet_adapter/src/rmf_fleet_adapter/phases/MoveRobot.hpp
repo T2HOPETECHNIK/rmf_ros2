@@ -97,6 +97,7 @@ struct MoveRobot
 
     agv::RobotContextPtr _context;
     std::vector<rmf_traffic::agv::Plan::Waypoint> _waypoints;
+    bool _has_nav_elements;
     PlanIdPtr _plan_id;
     std::optional<rmf_traffic::Duration> _tail_period;
     std::string _description;
@@ -119,6 +120,7 @@ struct MoveRobot
 
     agv::RobotContextPtr _context;
     std::vector<rmf_traffic::agv::Plan::Waypoint> _waypoints;
+    bool _has_nav_elements;
     rmf_traffic::PlanId _plan_id;
     std::optional<rmf_traffic::Duration> _tail_period;
     std::optional<rmf_traffic::Time> _last_tail_bump;
@@ -294,7 +296,7 @@ void MoveRobot::Action::operator()(const Subscriber& s)
               }
             }
 
-            if (!context->locked_mutex_groups().empty())
+            if (!context->locked_mutex_groups().empty() && self->_has_nav_elements)
             {
               const auto adjusted_now = now - new_cumulative_delay;
               const auto& graph = context->navigation_graph();
@@ -323,7 +325,7 @@ void MoveRobot::Action::operator()(const Subscriber& s)
                 }
               }
 
-              context->retain_mutex_groups(retain_mutexes);
+              context->retain_mutex_groups(retain_mutexes, "move robot progress");
             }
           });
       };
@@ -349,7 +351,7 @@ void MoveRobot::Action::operator()(const Subscriber& s)
             {
               const auto& graph = self->_context->navigation_graph();
               self->_context->retain_mutex_groups(
-                {graph.get_waypoint(*last_index).in_mutex_group()});
+                {graph.get_waypoint(*last_index).in_mutex_group()}, "move robot finish");
             }
 
             const auto now = self->_context->now();

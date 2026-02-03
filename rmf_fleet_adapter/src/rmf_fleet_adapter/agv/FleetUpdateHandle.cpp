@@ -1131,7 +1131,8 @@ namespace {
 std::optional<rmf_fleet_msgs::msg::Location> convert_location(
   const agv::RobotContext& context)
 {
-  if (context.location().empty())
+  const auto location = context.location();
+  if (location.empty())
   {
     const auto& lost = context.lost();
     if (lost.has_value() && lost->location.has_value())
@@ -1155,7 +1156,7 @@ std::optional<rmf_fleet_msgs::msg::Location> convert_location(
   }
 
   const auto& graph = context.planner()->get_configuration().graph();
-  const auto& l = context.location().front();
+  const auto& l = location.front();
   const auto& wp = graph.get_waypoint(l.waypoint());
   const Eigen::Vector2d p = l.location().value_or(wp.get_location());
 
@@ -2646,7 +2647,9 @@ bool FleetUpdateHandle::set_task_planner_params(
         for (const auto& t : self->_pimpl->task_managers)
         {
           t.first->task_planner(self->_pimpl->task_planner);
-          t.second->set_idle_task(idle_task);
+          // Skip setting idle task if there exists a robot-specific behavior
+          if (!t.first->robot_finishing_request())
+            t.second->set_idle_task(idle_task);
         }
       });
 

@@ -46,6 +46,7 @@
 
 #include "Node.hpp"
 #include "../Reporting.hpp"
+#include "ReservationManager.hpp"
 
 #include <unordered_set>
 
@@ -127,6 +128,13 @@ inline std::string print_waypoint(
 
   ss << wp.get_map_name() << " <" << wp.get_location().transpose() << "> ["
      << wp.name_or_index() << "]";
+
+  const auto& mutex = wp.in_mutex_group();
+  if (!mutex.empty())
+  {
+    ss << " [mutex: " << mutex << "]";
+  }
+
   return ss.str();
 }
 
@@ -200,6 +208,13 @@ inline std::string print_lane(
   const auto& lane = graph.get_lane(i_lane);
   ss << "lane " << i_lane << ": " << print_lane_node(lane.entry(), graph)
      << " -> " << print_lane_node(lane.exit(), graph);
+
+  const auto& mutex = lane.properties().in_mutex_group();
+  if (!mutex.empty())
+  {
+    ss << " [mutex: " << mutex  << "]";
+  }
+
   return ss.str();
 }
 
@@ -412,6 +427,9 @@ class RobotContext
 {
 public:
 
+
+  uint64_t last_reservation_request_id();
+
   /// Get a handle to the command interface of the robot. This may return a
   /// nullptr if the robot has disconnected and/or its command API is no longer
   /// available.
@@ -434,7 +452,7 @@ public:
 
   /// This is the current "location" of the robot, which can be used to initiate
   /// a planning job
-  const rmf_traffic::agv::Plan::StartSet& location() const;
+  rmf_traffic::agv::Plan::StartSet& location() const;
 
   /// Set the current location for the robot in terms of a planner start set
   void set_location(rmf_traffic::agv::Plan::StartSet location_);
@@ -445,6 +463,11 @@ public:
 
   /// Set that the robot is currently lost
   void set_lost(std::optional<Location> location);
+  
+   /// Used by certain events to lock in a specific waypoint as the current event
+  /// waypoint. This alters how the planner interprets the current start set,
+  /// focusing it in on the waypoint of the event.
+  std::shared_ptr<std::size_t> _set_current_event_waypoint(std::size_t index);
 
   /// Filter closed lanes out of the planner start set. At least one start will
   /// be retained so that the planner can offer some solution, even if all
@@ -501,6 +524,14 @@ public:
   /// Set the navigation params for this robot. This is used by EasyFullControl
   /// robots.
   void set_nav_params(std::shared_ptr<NavParams> value);
+
+  /// Check whether this robot is using a robot-specific or fleet-wide finishing
+  /// request.
+  bool robot_finishing_request() const;
+
+  /// Toggle the robot_finishing_request flag to indicate whether this robot is
+  /// using a robot-specific or fleet-wide finishing request.
+  void robot_finishing_request(bool robot_specific);
 
   class NegotiatorLicense;
 
@@ -724,7 +755,9 @@ public:
     rmf_traffic::Time claim_time);
 
   /// Retain only the mutex groups listed in the set. Release all others.
-  void retain_mutex_groups(const std::unordered_set<std::string>& groups);
+  void retain_mutex_groups(
+    const std::unordered_set<std::string>& groups,
+    const std::string& backtrace);
 
   void schedule_itinerary(
     std::shared_ptr<rmf_traffic::PlanId> plan_id,
@@ -758,6 +791,38 @@ public:
 
   /// Release a door. This should only be used by DoorClose
   void _release_door(const std::string& door_name);
+
+  /// Set an allocated destination.
+  void _set_allocated_destination(
+    const rmf_reservation_msgs::msg::ReservationAllocation&);
+
+  /// Cancel allocated destination
+  void _cancel_allocated_destination();
+
+  /// Get last reserved location. Empty string if not reserved.
+  std::string _get_reserved_location();
+
+  /// Set if the parking spot manager is used or not
+  void _set_parking_spot_manager(const bool enabled);
+
+  /// Find all available spots. Order based on current location.
+  /// \param[in] same_floor - if the parking spots should be on the same floor.
+  std::vector<rmf_traffic::agv::Planner::Goal>
+  _find_and_sort_parking_spots(const bool same_floor)
+  const;
+
+  /// Find all available parking sports. Order based on goal.
+  /// \param[in] same_floor - if the parking spots should be on the same floor.
+  std::vector<rmf_traffic::agv::Planner::Goal>
+  _find_and_sort_parking_spots(
+    const rmf_traffic::agv::Plan::Goal& dest, const bool same_floor)
+  const;
+
+  /// Set if the parking spot manager is used or not
+  bool _parking_spot_manager_enabled();
+
+  /// Does the parking spot have a ticket?
+  bool _has_ticket() const;
 
   template<typename... Args>
   static std::shared_ptr<RobotContext> make(Args&&... args)
@@ -823,6 +888,8 @@ public:
           self->_handle_mutex_group_manual_release(*msg);
       });
 
+    context->_reservation_mgr._context = context;
+
     return context;
   }
 
@@ -846,6 +913,15 @@ private:
     std::shared_ptr<const rmf_task::TaskPlanner> task_planner);
 
   std::weak_ptr<RobotCommandHandle> _command_handle;
+
+  /// If an event is taking place at a waypoint, this field will be set with the
+  /// value of that waypoint. As long as this is set, any replan will use this
+  /// waypoint as its starting point instead of _location.
+  ///
+  /// This is used by LockMutexGroup to prevent deadlocks that could arise from
+  /// the planner chosing to start from a different Plan::Start element that
+  /// requires some other mutex to also be locked before proceeding.
+  std::weak_ptr<std::size_t> _current_event_waypoint;
   std::vector<rmf_traffic::agv::Plan::Start> _location;
   std::vector<rmf_traffic::agv::Plan::Start> _most_recent_valid_location;
   rmf_traffic::schedule::Participant _itinerary;
@@ -891,6 +967,7 @@ private:
     std::make_unique<std::mutex>();
   std::shared_ptr<const rmf_task::TaskPlanner> _task_planner;
   std::weak_ptr<TaskManager> _task_manager;
+  bool _robot_finishing_request = false;
 
   RobotUpdateHandle::Unstable::Watchdog _lift_watchdog;
   rmf_traffic::Duration _lift_rewait_duration = std::chrono::seconds(0);
@@ -926,8 +1003,11 @@ private:
   void _check_mutex_groups(const rmf_fleet_msgs::msg::MutexGroupStates& states);
   void _retain_mutex_groups(
     const std::unordered_set<std::string>& retain,
-    std::unordered_map<std::string, TimeMsg>& _groups);
-  void _release_mutex_group(const MutexGroupData& data) const;
+    std::unordered_map<std::string, TimeMsg>& _groups,
+    const std::string& backtrace);
+  void _release_mutex_group(
+    const MutexGroupData& data,
+    const std::string& backtrace) const;
   void _publish_mutex_group_requests();
   void _handle_mutex_group_manual_release(
     const rmf_fleet_msgs::msg::MutexGroupManualRelease& msg);
@@ -940,6 +1020,10 @@ private:
   rclcpp::Subscription<rmf_fleet_msgs::msg::MutexGroupManualRelease>::SharedPtr
     _mutex_group_manual_release_sub;
   std::chrono::steady_clock::time_point _last_active_task_time;
+
+  uint64_t _last_reservation_request_id;
+  ReservationManager _reservation_mgr;
+  bool _use_parking_spot_reservations;
 
   std::optional<RobotUpdateHandle::LiftDestination> _final_lift_destination;
   std::unique_ptr<std::mutex> _final_lift_destination_mutex =

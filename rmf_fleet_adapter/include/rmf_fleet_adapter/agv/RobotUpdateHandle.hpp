@@ -25,6 +25,8 @@
 
 #include <rmf_traffic/schedule/Participant.hpp>
 
+#include <rmf_task/RequestFactory.hpp>
+
 #include <Eigen/Geometry>
 #include <nlohmann/json.hpp>
 
@@ -97,10 +99,25 @@ public:
   /// for it.
   void update_position(rmf_traffic::agv::Plan::StartSet position);
 
+  /// Set whether this robot uses the parking reservation system. By default this
+  /// is false in order to keep the system behavior backwards compatible, but it
+  /// is recommended that you turn this on.
+  ///
+  /// If you are using the EasyFullControl API then you can set this in your
+  /// fleet configuration.
+  RobotUpdateHandle& use_parking_reservation_system(bool use);
+
   /// Set the waypoint where the charger for this robot is located.
   /// If not specified, the nearest waypoint in the graph with the is_charger()
   /// property will be assumed as the charger for this robot.
   RobotUpdateHandle& set_charger_waypoint(const std::size_t charger_wp);
+
+  /// Set a finishing request for this robot.
+  RobotUpdateHandle& set_finishing_request(rmf_task::ConstRequestFactoryPtr finishing_request);
+
+  /// Set a finishing request for this robot to use the fleet-wide finishing
+  /// request.
+  RobotUpdateHandle& use_default_finishing_request();
 
   /// Update the current battery level of the robot by specifying its state of
   /// charge as a fraction of its total charge capacity, i.e. a value from 0.0
