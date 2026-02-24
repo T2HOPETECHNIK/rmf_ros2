@@ -108,7 +108,18 @@ void Auctioneer::Implementation::finish_bidding_process()
   {
     if (determine_winner(front_task))
     {
+      if (front_task.retry_count > 0)
+      {
+        RCLCPP_INFO(
+          node->get_logger(),
+          "Bidding Process for Task [%s]: current retry count: %u/%d.",
+          front_task.bid_notice.task_id.c_str(),
+          front_task.retry_count,
+          MAX_BIDDING_RETRY_COUNT);
+      }
       open_bid_queue.pop();
+
+      retry_failed_bid(front_task);
     }
   }
   else
