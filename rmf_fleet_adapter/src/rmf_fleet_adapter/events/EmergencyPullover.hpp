@@ -123,9 +123,10 @@ public:
     std::optional<ExecutePlan> _execution;
     std::shared_ptr<services::FindEmergencyPullover> _find_pullover_service;
     rmf_rxcpp::subscription_guard _pullover_subscription;
+    rmf_rxcpp::subscription_guard _replan_request_subscription;
     rclcpp::TimerBase::SharedPtr _find_pullover_timeout;
     rclcpp::TimerBase::SharedPtr _retry_timer;
-
+    
     std::shared_ptr<services::FindPath> _find_path_service;
     rmf_rxcpp::subscription_guard _plan_subscription;
     rclcpp::TimerBase::SharedPtr _find_path_timeout;
