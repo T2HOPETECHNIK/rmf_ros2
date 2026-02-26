@@ -452,7 +452,7 @@ public:
 
   /// This is the current "location" of the robot, which can be used to initiate
   /// a planning job
-  rmf_traffic::agv::Plan::StartSet& location() const;
+  rmf_traffic::agv::Plan::StartSet location() const;
 
   /// Set the current location for the robot in terms of a planner start set
   void set_location(rmf_traffic::agv::Plan::StartSet location_);
