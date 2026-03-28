@@ -22,7 +22,7 @@ repositories:
   rmf/rmf_internal_msgs:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_internal_msgs.git
-    version: cgh-main
+    version: SC2-848-Create-new-topic-on-rmf-messages-for-3-lift-area
   rmf/rmf_ros2:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_ros2.git
