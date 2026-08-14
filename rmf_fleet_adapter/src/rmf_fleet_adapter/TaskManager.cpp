@@ -272,6 +272,14 @@ const std::string& TaskManager::ActiveTask::id() const
   return _task->tag()->booking()->id();
 }
 
+//==============================================================================
+rmf_traffic::Duration TaskManager::ActiveTask::estimate_remaining_time() const
+{
+  if (!_task)
+    return rmf_traffic::Duration(0);
+  return _task->estimate_remaining_time();
+}
+
 namespace {
 
 //==============================================================================
@@ -870,15 +878,39 @@ auto TaskManager::expected_finish_state() const -> State
   std::lock_guard<std::recursive_mutex> lock(_mutex);
   if (!_direct_queue.empty())
   {
-    return _direct_queue.rbegin()->assignment.finish_state();
+    rmf_task::State return_state = _direct_queue.rbegin()->assignment.finish_state();
+    if (_active_task && return_state.time().has_value())
+    {
+      // Shift the last queued direct task's finish time forward by the current active
+      // task's accumulated delay.
+      const auto projected_active_end =
+        _context->now() + _active_task.estimate_remaining_time();
+      const auto planned_active_end = _context->current_task_end_state().time();
+      if (planned_active_end.has_value()
+        && projected_active_end > *planned_active_end)
+      {
+        const auto shift = projected_active_end - *planned_active_end;
+        return_state.time(*return_state.time() + shift);
+      }
+    }
+    return_state.idle(false);
+    return return_state;
   }
 
   if (_active_task)
-    return _context->current_task_end_state();
+  {
+    rmf_task::State return_state = _context->current_task_end_state();
+    const auto t = _context->now() + _active_task.estimate_remaining_time();
+    return_state.time(t);
+    return_state.idle(false);
+    return return_state;
+  }
 
   rmf_task::State current_state =
     _context->make_get_state()()
-    .time(rmf_traffic_ros2::convert(_context->node()->now()));
+    .time(rmf_traffic_ros2::convert(_context->node()->now()))
+    .idle(true);
+
   return current_state;
 }
 
