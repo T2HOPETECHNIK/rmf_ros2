@@ -893,7 +893,6 @@ auto TaskManager::expected_finish_state() const -> State
         return_state.time(*return_state.time() + shift);
       }
     }
-    return_state.idle(false);
     return return_state;
   }
 
@@ -902,14 +901,12 @@ auto TaskManager::expected_finish_state() const -> State
     rmf_task::State return_state = _context->current_task_end_state();
     const auto t = _context->now() + _active_task.estimate_remaining_time();
     return_state.time(t);
-    return_state.idle(false);
     return return_state;
   }
 
   rmf_task::State current_state =
     _context->make_get_state()()
-    .time(rmf_traffic_ros2::convert(_context->node()->now()))
-    .idle(true);
+    .time(rmf_traffic_ros2::convert(_context->node()->now()));
 
   return current_state;
 }
