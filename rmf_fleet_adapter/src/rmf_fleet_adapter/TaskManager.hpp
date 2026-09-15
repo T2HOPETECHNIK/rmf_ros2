@@ -286,6 +286,8 @@ private:
 
     bool is_finished() const;
 
+    rmf_traffic::Duration estimate_remaining_time() const;
+
     // Any unknown tokens that were included will be returned
     std::vector<std::string> remove_interruption(
       std::vector<std::string> for_tokens,
