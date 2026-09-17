@@ -153,6 +153,48 @@ TaskManagerPtr TaskManager::make(
       }
     });
 
+  mgr->_blanki_pause_hold_sub =
+    mgr->_context->node()->create_subscription<std_msgs::msg::String>(
+    "blanki_pause_hold", rclcpp::SystemDefaultsQoS(),
+    [w = mgr->weak_from_this()](const std_msgs::msg::String::SharedPtr msg)
+    {
+      const auto mgr = w.lock();
+      if (!mgr)
+        return;
+
+      nlohmann::json payload;
+      try
+      {
+        payload = nlohmann::json::parse(msg->data);
+      }
+      catch (const std::exception&)
+      {
+        return;
+      }
+
+      if (payload.value("robot_name", std::string()) != mgr->_context->name())
+        return;
+
+      const auto action = payload.value("action", std::string());
+      mgr->_context->worker().schedule(
+        [w = mgr->weak_from_this(), action](const auto&)
+        {
+          const auto mgr = w.lock();
+          if (!mgr)
+            return;
+
+          if (action == "hold")
+          {
+            mgr->_begin_pause_hold(
+              rmf_traffic::agv::Plan::Goal(mgr->_context->dedicated_charging_wp()));
+          }
+          else if (action == "release")
+          {
+            mgr->_end_pause_hold();
+          }
+        });
+    });
+
   mgr->_task_timer = mgr->context()->node()->try_create_wall_timer(
     std::chrono::seconds(1),
     [w = mgr->weak_from_this()]()

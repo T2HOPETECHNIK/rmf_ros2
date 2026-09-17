@@ -31,6 +31,7 @@
 
 #include <rmf_fleet_msgs/msg/robot_mode.hpp>
 #include <rmf_task_msgs/msg/task_summary.hpp>
+#include <std_msgs/msg/string.hpp>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
@@ -443,6 +444,7 @@ private:
   // events/PauseHoldMove.
   ActiveTask _pause_hold_move;
   uint16_t _count_pause_hold_move = 0;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _blanki_pause_hold_sub;
 
   /// Begin performing an emergency pullover. This should only be called when an
   /// emergency is active.
