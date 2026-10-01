@@ -194,6 +194,8 @@ auto PerformAction::Active::backup() const -> Backup
 auto PerformAction::Active::interrupt(
   std::function<void()> task_is_interrupted) -> Resume
 {
+  ++_execution_generation;
+
   _state->update_status(Status::Standby);
   _state->update_log().info("Going into standby for an interruption");
   _state->update_dependencies({});
@@ -253,9 +255,21 @@ void PerformAction::Active::_execute_action()
     _finished();
     return;
   }
+  
+  //interrupt() bumps _execution_generation the instant pause/fire-alarm fires. 
+  //That background timer is still running and still eventually calls finished, 
+  //but now that callback checks its stamped generation against the current counter first.
+  //Since interrupt() already bumped it, they no longer match, so the callback returns immediately,
+  // it never touches _state and never calls cb(). _state just stays at whatever interrupt() 
+  //set it to (Standby) instead of getting forced to Completed.
+  const auto generation = ++_execution_generation;
 
-  auto finished = [state = _state, cb = _finished]()
+  auto finished = [w = weak_from_this(), state = _state, cb = _finished, generation]()
     {
+      const auto self = w.lock();
+      if (self && self->_execution_generation != generation)
+        return;
+
       state->update_status(Status::Completed);
       cb();
     };

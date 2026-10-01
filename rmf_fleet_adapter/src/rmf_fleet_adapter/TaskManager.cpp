@@ -122,6 +122,12 @@ TaskManagerPtr TaskManager::make(
             mgr->_waiting.cancel({"emergency pullover"}, mgr->_context->now());
           }
 
+          if (mgr->_pause_hold_move)
+          {
+            // Need Cancel any pause & hold behavior when emergency activated.
+            mgr->_pause_hold_move.cancel({"emergency pullover"}, mgr->_context->now());
+          }
+
           if (mgr->_active_task)
           {
             mgr->_emergency_pullover_interrupt_token =
