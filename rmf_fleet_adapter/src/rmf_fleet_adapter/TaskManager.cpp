@@ -35,6 +35,7 @@
 
 #include "events/ResponsiveWait.hpp"
 #include "events/EmergencyPullover.hpp"
+#include "events/PauseHoldMove.hpp"
 
 #include <rmf_api_msgs/schemas/task_state_update.hpp>
 #include <rmf_api_msgs/schemas/task_state.hpp>
@@ -121,6 +122,12 @@ TaskManagerPtr TaskManager::make(
             mgr->_waiting.cancel({"emergency pullover"}, mgr->_context->now());
           }
 
+          if (mgr->_pause_hold_move)
+          {
+            // Need Cancel any pause & hold behavior when emergency activated.
+            mgr->_pause_hold_move.cancel({"emergency pullover"}, mgr->_context->now());
+          }
+
           if (mgr->_active_task)
           {
             mgr->_emergency_pullover_interrupt_token =
@@ -150,6 +157,48 @@ TaskManagerPtr TaskManager::make(
           }
         }
       }
+    });
+
+  mgr->_blanki_pause_hold_sub =
+    mgr->_context->node()->create_subscription<std_msgs::msg::String>(
+    "blanki_pause_hold", rclcpp::SystemDefaultsQoS(),
+    [w = mgr->weak_from_this()](const std_msgs::msg::String::SharedPtr msg)
+    {
+      const auto mgr = w.lock();
+      if (!mgr)
+        return;
+
+      nlohmann::json payload;
+      try
+      {
+        payload = nlohmann::json::parse(msg->data);
+      }
+      catch (const std::exception&)
+      {
+        return;
+      }
+
+      if (payload.value("robot_name", std::string()) != mgr->_context->name())
+        return;
+
+      const auto action = payload.value("action", std::string());
+      mgr->_context->worker().schedule(
+        [w = mgr->weak_from_this(), action](const auto&)
+        {
+          const auto mgr = w.lock();
+          if (!mgr)
+            return;
+
+          if (action == "hold")
+          {
+            mgr->_begin_pause_hold(
+              rmf_traffic::agv::Plan::Goal(mgr->_context->dedicated_charging_wp()));
+          }
+          else if (action == "release")
+          {
+            mgr->_end_pause_hold();
+          }
+        });
     });
 
   mgr->_task_timer = mgr->context()->node()->try_create_wall_timer(
@@ -1352,6 +1401,7 @@ void TaskManager::Interruption::resume(std::vector<std::string> labels)
         for (auto* task : {
           &mgr->_active_task,
           &mgr->_emergency_pullover,
+          &mgr->_pause_hold_move,
           &mgr->_waiting
         })
         {
@@ -1660,7 +1710,7 @@ void TaskManager::_process_robot_interrupts()
     if (interruption->resumed)
       continue;
 
-    for (auto* task : {&_active_task, &_emergency_pullover, &_waiting})
+    for (auto* task : {&_active_task, &_emergency_pullover, &_pause_hold_move, &_waiting})
     {
       if (!*task)
         continue;
@@ -1704,6 +1754,7 @@ std::function<void()> TaskManager::_robot_interruption_callback()
           for (auto* task : {
             &self->_active_task,
             &self->_emergency_pullover,
+            &self->_pause_hold_move,
             &self->_waiting
           })
           {
@@ -3029,6 +3080,76 @@ void TaskManager::_handle_undo_skip_phase_request(
   }
 
   _send_simple_error_if_queued(task_id, request_id, "Undoing a phase skip in ");
+}
+
+//==============================================================================
+void TaskManager::_begin_pause_hold(rmf_traffic::agv::Plan::Goal goal)
+{
+  if (_pause_hold_move && !_pause_hold_move.is_finished())
+  {
+    return;
+  }
+
+  auto task_id = "pause_hold_move." + _context->name() + "."
+    + _context->group() + "-"
+    + std::to_string(_count_pause_hold_move++);
+
+  _pause_hold_move = ActiveTask::start(
+    events::PauseHoldMove::start(
+      task_id,
+      _context,
+      std::move(goal),
+      _update_cb(),
+      _make_finish_pause_hold()),
+    _context->now());
+  _context->current_task_id(task_id);
+
+  _context->worker().schedule(
+    [w = weak_from_this()](const auto&)
+    {
+      if (const auto self = w.lock())
+        self->_process_robot_interrupts();
+    });
+}
+
+//==============================================================================
+void TaskManager::_end_pause_hold()
+{
+  if (!_pause_hold_move)
+    return;
+
+  _pause_hold_move.cancel({"pause hold released"}, _context->now());
+}
+
+//==============================================================================
+std::function<void()> TaskManager::_make_finish_pause_hold()
+{
+  return [w = weak_from_this()]()
+    {
+      const auto self = w.lock();
+      if (!self)
+        return;
+
+      self->_context->worker().schedule(
+        [w = self->weak_from_this()](const auto&)
+        {
+          const auto self = w.lock();
+          if (!self)
+            return;
+
+          self->_pause_hold_move = ActiveTask();
+
+          if (self->_active_task)
+          {
+            self->_context->current_task_id(self->_active_task.id());
+          }
+          else
+          {
+            self->_context->current_task_id(std::nullopt);
+            self->_begin_next_task();
+          }
+        });
+    };
 }
 
 } // namespace rmf_fleet_adapter
