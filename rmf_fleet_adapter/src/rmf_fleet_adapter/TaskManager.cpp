@@ -182,8 +182,9 @@ TaskManagerPtr TaskManager::make(
         return;
 
       const auto action = payload.value("action", std::string());
+      const auto waypoint = payload.value("waypoint", std::string());
       mgr->_context->worker().schedule(
-        [w = mgr->weak_from_this(), action](const auto&)
+        [w = mgr->weak_from_this(), action, waypoint](const auto&)
         {
           const auto mgr = w.lock();
           if (!mgr)
@@ -191,6 +192,21 @@ TaskManagerPtr TaskManager::make(
 
           if (action == "hold")
           {
+            if (!waypoint.empty())
+            {
+              const auto& graph = mgr->_context->navigation_graph();
+              const auto* wp = graph.find_waypoint(waypoint);
+              if (wp)
+              {
+                mgr->_begin_pause_hold(rmf_traffic::agv::Plan::Goal(wp->index()));
+                return;
+              }
+              RCLCPP_WARN(
+                mgr->_context->node()->get_logger(),
+                "blanki_pause_hold: waypoint [%s] not found for robot [%s], "
+                "falling back to charger",
+                waypoint.c_str(), mgr->_context->requester_id().c_str());
+            }
             mgr->_begin_pause_hold(
               rmf_traffic::agv::Plan::Goal(mgr->_context->dedicated_charging_wp()));
           }
