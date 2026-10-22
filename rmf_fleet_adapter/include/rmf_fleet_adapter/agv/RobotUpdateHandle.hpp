@@ -506,6 +506,13 @@ public:
   /// about where the robot will ask to go, and which lift it intends to use.
   std::optional<LiftDestination> lift_destination() const;
 
+  /// Move to a waypoint (e.g. charger) while the current task stays
+  /// interrupted. Holds there until release_pause_hold().
+  void request_pause_hold(std::string charger_waypoint);
+
+  /// Stop a pause hold started by request_pause_hold().
+  void release_pause_hold();
+
   class Implementation;
 
   /// This API is experimental and will not be supported in the future. Users

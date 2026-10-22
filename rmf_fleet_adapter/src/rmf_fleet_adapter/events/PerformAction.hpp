@@ -125,6 +125,7 @@ public:
     rmf_traffic::Time _expected_finish_time;
     std::shared_ptr<void> _be_stubborn;
     std::weak_ptr<ExecutionData> _execution_data;
+    uint64_t _execution_generation = 0;
   };
 };
 

@@ -31,6 +31,7 @@
 
 #include <rmf_fleet_msgs/msg/robot_mode.hpp>
 #include <rmf_task_msgs/msg/task_summary.hpp>
+#include <std_msgs/msg/string.hpp>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
@@ -251,6 +252,13 @@ public:
   /// idle behavior will be triggered.
   void _begin_next_task();
 
+  /// Begin holding the robot at a fixed waypoint via PauseHoldMove, while
+  /// _active_task remains interrupted rather than cancelled.
+  void _begin_pause_hold(rmf_traffic::agv::Plan::Goal goal);
+
+  /// Cancel an in-progress pause hold (on resume or an external cancel).
+  void _end_pause_hold();
+
 private:
 
   TaskManager(
@@ -432,6 +440,13 @@ private:
 
   // Map task_id to task_log.json for all tasks managed by this TaskManager
   std::unordered_map<std::string, nlohmann::json> _task_logs = {};
+
+  // Holds the robot at a fixed waypoint (e.g. charger) via a real planner
+  // move while _active_task is interrupted, not cancelled. See
+  // events/PauseHoldMove.
+  ActiveTask _pause_hold_move;
+  uint16_t _count_pause_hold_move = 0;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _blanki_pause_hold_sub;
 
   /// Begin performing an emergency pullover. This should only be called when an
   /// emergency is active.
@@ -627,6 +642,9 @@ private:
   void _handle_undo_skip_phase_request(
     const nlohmann::json& request_json,
     const std::string& request_id);
+
+  /// Make the callback for when a pause hold finishes (cancel/kill only).
+  std::function<void()> _make_finish_pause_hold();
 
 };
 
