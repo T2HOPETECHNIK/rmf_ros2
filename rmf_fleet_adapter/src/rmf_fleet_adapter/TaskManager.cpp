@@ -1538,6 +1538,12 @@ void TaskManager::_begin_next_task()
     return;
   }
 
+  // Don't start a task or idle behavior while held; hold finish restarts it
+  if (_pause_hold_move)
+  {
+    return;
+  }
+
   std::lock_guard<std::recursive_mutex> guard(_mutex);
 
   if (_queue.empty() && _direct_queue.empty())
@@ -3074,6 +3080,16 @@ void TaskManager::_begin_pause_hold(rmf_traffic::agv::Plan::Goal goal)
 {
   if (_pause_hold_move && !_pause_hold_move.is_finished())
   {
+    return;
+  }
+
+  // Hold only pauses an active task, never runs alongside idle behavior
+  if (!_active_task)
+  {
+    RCLCPP_WARN(
+      _context->node()->get_logger(),
+      "Ignoring pause hold for robot [%s]: no active task",
+      _context->requester_id().c_str());
     return;
   }
 

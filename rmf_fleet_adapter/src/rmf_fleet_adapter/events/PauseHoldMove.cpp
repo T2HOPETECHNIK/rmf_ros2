@@ -394,6 +394,10 @@ void PauseHoldMove::Active::_execute_plan(
   if (_is_interrupted)
     return;
 
+  // Moving again (e.g. after negotiation), stop publishing the hold itinerary
+  _hold_timer = nullptr;
+  _is_holding = false;
+
   if (plan.get_itinerary().empty() || plan.get_waypoints().empty())
   {
     // Already at the hold point. Unlike EmergencyPullover, we do NOT call
@@ -447,7 +451,41 @@ void PauseHoldMove::Active::_on_arrived()
   _state->update_status(Status::Underway);
   _state->update_log().info(
     "Arrived at hold point; holding until told to stop");
+  _start_holding_itinerary();
   _update();
+}
+
+//==============================================================================
+// Keep a stationary itinerary in the schedule so other robots plan around us
+void PauseHoldMove::Active::_start_holding_itinerary()
+{
+  const auto publish_hold = [w = weak_from_this()]()
+    {
+      const auto self = w.lock();
+      if (!self || self->_is_interrupted || !self->_is_holding)
+        return;
+
+      const auto now = self->_context->now();
+      const Eigen::Vector3d position = self->_context->position();
+      rmf_traffic::Trajectory trajectory;
+      trajectory.insert(now, position, Eigen::Vector3d::Zero());
+      trajectory.insert(
+        now + std::chrono::seconds(60), position, Eigen::Vector3d::Zero());
+
+      self->_context->itinerary().set(
+        self->_context->itinerary().assign_plan_id(),
+        {{self->_context->map(), std::move(trajectory)}});
+    };
+
+  publish_hold();
+  _hold_timer = _context->node()->try_create_wall_timer(
+    std::chrono::seconds(30),
+    [w = weak_from_this(), publish_hold]()
+    {
+      if (const auto self = w.lock())
+        self->_context->worker().schedule(
+          [publish_hold](const auto&) { publish_hold(); });
+    });
 }
 
 //==============================================================================
@@ -456,6 +494,7 @@ void PauseHoldMove::Active::_stop_and_clear()
 {
   _execution = std::nullopt;
   _is_holding = false;
+  _hold_timer = nullptr;
   if (const auto command = _context->command())
     command->stop();
 

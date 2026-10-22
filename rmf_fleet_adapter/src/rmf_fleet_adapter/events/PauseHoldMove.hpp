@@ -122,6 +122,8 @@ public:
 
     void _on_arrived();
 
+    void _start_holding_itinerary();
+
     void _stop_and_clear();
 
     Negotiator::NegotiatePtr _respond(
@@ -142,6 +144,7 @@ public:
     rmf_rxcpp::subscription_guard _replan_request_subscription;
     rclcpp::TimerBase::SharedPtr _find_path_timeout;
     rclcpp::TimerBase::SharedPtr _retry_timer;
+    rclcpp::TimerBase::SharedPtr _hold_timer;
 
     bool _is_interrupted = false;
     bool _is_holding = false;
