@@ -321,7 +321,12 @@ PYBIND11_MODULE(rmf_adapter, m) {
   .def("reassign_dispatched_tasks",
     &agv::RobotUpdateHandle::reassign_dispatched_tasks)
   .def("lift_destination",
-    &agv::RobotUpdateHandle::lift_destination);
+    &agv::RobotUpdateHandle::lift_destination)
+  .def("request_pause_hold",
+    &agv::RobotUpdateHandle::request_pause_hold,
+    py::arg("charger_waypoint"))
+  .def("release_pause_hold",
+    &agv::RobotUpdateHandle::release_pause_hold);
 
   // ACTION EXECUTOR   =======================================================
   auto m_robot_update_handle = m.def_submodule("robot_update_handle");

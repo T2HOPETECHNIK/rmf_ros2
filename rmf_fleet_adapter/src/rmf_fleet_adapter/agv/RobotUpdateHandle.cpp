@@ -1486,5 +1486,72 @@ std::optional<ScheduleOverride> ScheduleOverride::make(
   };
 }
 
+//==============================================================================
+/*
+Grabs the robot's context, does nothing if it's gone.
+Schedules the work on the robot's worker thread.
+Looks up the charger name in the nav graph, warns and stops if not found.
+Turns it into a Plan::Goal and calls TaskManager::_begin_pause_hold(...), this starts the hold
+*/
+void RobotUpdateHandle::request_pause_hold(std::string charger_waypoint)
+{
+  if (const auto context = _pimpl->get_context())
+  {
+    context->worker().schedule(
+      [
+        charger_waypoint = std::move(charger_waypoint),
+        c = context->weak_from_this()
+      ](const auto&)
+      {
+        const auto context = c.lock();
+        if (!context)
+          return;
+
+        const auto mgr = context->task_manager();
+        if (!mgr)
+          return;
+
+        const auto& graph = context->navigation_graph();
+        const auto* wp = graph.find_waypoint(charger_waypoint);
+        if (!wp)
+        {
+          RCLCPP_WARN(
+            context->node()->get_logger(),
+            "request_pause_hold: waypoint [%s] not found for robot [%s]",
+            charger_waypoint.c_str(), context->requester_id().c_str());
+          return;
+        }
+
+        mgr->_begin_pause_hold(rmf_traffic::agv::Plan::Goal(wp->index()));
+      });
+  }
+}
+
+//==============================================================================
+/*
+Same context/worker setup as above.
+Just calls TaskManager::_end_pause_hold(), 
+no waypoint lookup needed since it's just stopping whatever hold is already running.
+*/
+void RobotUpdateHandle::release_pause_hold()
+{
+  if (const auto context = _pimpl->get_context())
+  {
+    context->worker().schedule(
+      [c = context->weak_from_this()](const auto&)
+      {
+        const auto context = c.lock();
+        if (!context)
+          return;
+
+        const auto mgr = context->task_manager();
+        if (!mgr)
+          return;
+
+        mgr->_end_pause_hold();
+      });
+  }
+}
+
 } // namespace agv
 } // namespace rmf_fleet_adapter
