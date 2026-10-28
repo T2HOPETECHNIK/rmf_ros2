@@ -22,11 +22,11 @@ repositories:
   rmf/rmf_internal_msgs:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_internal_msgs.git
-    version: cgh-main
+    version: cgh/staging
   rmf/rmf_ros2:
     type: git
     url: git@github.com:T2HOPETECHNIK/rmf_ros2.git
-    version: cgh_ot_main
+    version: cgh/staging
   rmf/rmf_task:
     type: git
     url: https://github.com/open-rmf/rmf_task.git

@@ -2,9 +2,9 @@ name: Build rmf-HT docker images
 
 on:
   push:
-    branches: ['cgh_ot_main', SC2-813-Separate-rmf_ros2-build-into-two-jobs]
+    branches: ['cgh/staging']
   pull_request:
-    branches: ['cgh_ot_main']
+    branches: ['cgh/staging']
   schedule:
     - cron: "08 0 * * *"
   workflow_dispatch:
